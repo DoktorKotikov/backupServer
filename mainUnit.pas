@@ -113,8 +113,8 @@ var
 begin
   Event       := TEvent.create;
   HTTPini := TConfigs.Create('HTTP.ini');
-  wwwpath := HTTPini.GetValue_OrSetDefoult('Server', 'path', 'www');
-  IdHTTPServer1.DefaultPort := HTTPini.GetValue_OrSetDefoult('Server', 'port', '80');
+  wwwpath := HTTPini.GetValue_OrSetDefoult('Server', 'path', 'www').AsString;
+  IdHTTPServer1.DefaultPort := HTTPini.GetValue_OrSetDefoult('Server', 'port', '80').AsInteger;
 
   IdHTTPServer1.Active := True;
 
