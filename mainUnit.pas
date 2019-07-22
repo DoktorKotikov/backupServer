@@ -5,17 +5,21 @@ interface
 uses
   System.SysUtils, System.Classes, IdBaseComponent, IdComponent, SocketUnit,
   IdCustomTCPServer, IdTCPServer, IdContext, jobsUnit, System.JSON, messageExecute, System.SyncObjs, System.Generics.Collections,
-  myconfig.Logs, myconfig.ini, varsUnit, IdGlobal, System.Hash, FireDAC, MySQLUnit, jobsThreadUnit;
+  myconfig.Logs, myconfig.ini, varsUnit, IdGlobal, System.Hash, FireDAC, MySQLUnit, jobsThreadUnit,
+  IdCustomHTTPServer, IdHTTPServer;
 
 type
   TDataModule2 = class(TDataModule)
     IdTCPServer1: TIdTCPServer;
+    IdHTTPServer1: TIdHTTPServer;
     procedure DataModuleCreate(Sender: TObject);
     procedure IdTCPServer1Execute(AContext: TIdContext);
     procedure IdTCPServer1Disconnect(AContext: TIdContext);
 
     function RunJob(agent_Id : integer; jobrec : Tjobrec) : integer;
     procedure Check_NewJob();
+    procedure IdHTTPServer1CommandGet(AContext: TIdContext;
+      ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
   private
     { Private declarations }
   public
@@ -108,6 +112,11 @@ var
  test : TSQL;
 begin
   Event       := TEvent.create;
+  HTTPini := TConfigs.Create('HTTP.ini');
+  wwwpath := HTTPini.GetValue_OrSetDefoult('Server', 'path', 'www');
+  IdHTTPServer1.DefaultPort := HTTPini.GetValue_OrSetDefoult('Server', 'port', '80');
+
+  IdHTTPServer1.Active := True;
 
 //  IdTCPServer1 := TIdTCPServer.Create();
   ini := TConfigs.Create('config.ini');
@@ -137,6 +146,20 @@ begin
     Sleep(5000);
   until (false);
 //  IdTCPServer1
+end;
+
+procedure TDataModule2.IdHTTPServer1CommandGet(AContext: TIdContext;
+  ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
+var
+  trtr : TStringList;
+begin
+  trtr := TStringList.Create;
+  //ARequestInfo.Params
+   // ARequestInfo.URI
+  trtr.LoadFromFile(wwwpath + 'D:\1\2019\07\HTTPServerTest\1.htm');
+
+
+// AResponseInfo.ContentText
 end;
 
 procedure TDataModule2.IdTCPServer1Disconnect(AContext: TIdContext);

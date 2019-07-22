@@ -11,4 +11,11 @@ object DataModule2: TDataModule2
     Left = 32
     Top = 24
   end
+  object IdHTTPServer1: TIdHTTPServer
+    Bindings = <>
+    MaxConnections = 100
+    OnCommandGet = IdHTTPServer1CommandGet
+    Left = 80
+    Top = 24
+  end
 end

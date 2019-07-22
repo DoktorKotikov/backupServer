@@ -32,12 +32,14 @@ type
 
 
 var
+  HTTPini : TConfigs;
   ini : TConfigs;
   log : TLogsSaveClasses;
   secretKey : string;
   SQL : TFireDAC;
 
   Event       : TEvent;
+  wwwpath     : string;
 
 implementation
 
