@@ -2,7 +2,7 @@ unit MySQLUnit;
 
 interface
 
-uses System.SysUtils, varsUnit, FireDAC, System.Generics.Collections;
+uses System.SysUtils, varsUnit, FireDAC, System.Generics.Collections, jobsUnit;
 
 procedure CreateTables() ;
 function MySQL_CheckLogin(key, ip, name : string; out ID: integer): Integer;

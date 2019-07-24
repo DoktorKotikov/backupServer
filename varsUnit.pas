@@ -16,22 +16,15 @@ type
       AUTH_ByKey = 1
     );    }
 
-type
-  Tjobrec = record
-    //jobsDate_ID : Integer;
-    ID    : integer;
-    rules : string;
-    crone : string;
-    Tags  : string;
-    NextJobTime : TDateTime;
+
 
 //    dirClient, dirout, Pattern : string;
 //    sendto : integer;
 
-  end;
 
 
 var
+  MyDir   : string; // GetCurrentDir
   HTTPini : TConfigs;
   ini : TConfigs;
   log : TLogsSaveClasses;
@@ -40,7 +33,7 @@ var
 
   Event       : TEvent;
   wwwpath     : string;
-
+  wwwpathSeparator  : Char = '\';
 implementation
 
 

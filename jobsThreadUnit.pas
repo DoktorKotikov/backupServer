@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, System.Classes, System.SysUtils, varsUnit, MySQLUnit, System.RegularExpressions, DateUtils, System.JSON
-  , SocketUnit, System.Generics.Collections, System.SyncObjs;
+  , SocketUnit, System.Generics.Collections, System.SyncObjs, jobsUnit;
 
 type
 

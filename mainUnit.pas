@@ -3,10 +3,13 @@ unit mainUnit;
 interface
 
 uses
-  System.SysUtils, System.Classes, IdBaseComponent, IdComponent, SocketUnit,
+  System.SysUtils, System.Classes, IdBaseComponent, IdComponent, SocketUnit, HtmlUnit,
   IdCustomTCPServer, IdTCPServer, IdContext, jobsUnit, System.JSON, messageExecute, System.SyncObjs, System.Generics.Collections,
   myconfig.Logs, myconfig.ini, varsUnit, IdGlobal, System.Hash, FireDAC, MySQLUnit, jobsThreadUnit,
-  IdCustomHTTPServer, IdHTTPServer;
+  IdCustomHTTPServer, IdHTTPServer, IdCookie
+
+  ;
+
 
 type
   TDataModule2 = class(TDataModule)
@@ -111,9 +114,12 @@ procedure TDataModule2.DataModuleCreate(Sender: TObject);
 var
  test : TSQL;
 begin
+  MyDir   := GetCurrentDir;
+  Jobs :=  TAJobs.Create;
   Event       := TEvent.create;
   HTTPini := TConfigs.Create('HTTP.ini');
-  wwwpath := HTTPini.GetValue_OrSetDefoult('Server', 'path', 'www').AsString;
+
+  wwwpath := HTTPini.GetValue_OrSetDefoult('Server', 'path', GetCurrentDir+'\www\').AsString;
   IdHTTPServer1.DefaultPort := HTTPini.GetValue_OrSetDefoult('Server', 'port', '80').AsInteger;
 
   IdHTTPServer1.Active := True;
@@ -128,6 +134,8 @@ begin
   ini.GetValue_OrSetDefoult('Mysql', 'DB', 'backup').AsString,
   ini.GetValue_OrSetDefoult('Mysql', 'port', '3306').AsInteger,
   ini.GetValue_OrSetDefoult('Mysql', 'Pool_Maximum', '123').AsInteger);
+
+//  ini.GetValue_OrSetDefoult('global', 'dbfileName', 'jobs').AsString,
 
   MySQLUnit.CreateTables;
 
@@ -151,15 +159,24 @@ end;
 procedure TDataModule2.IdHTTPServer1CommandGet(AContext: TIdContext;
   ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
 var
-  trtr : TStringList;
+  cook    : TIdCookie;
+  ASource : TIdCookies;
 begin
-  trtr := TStringList.Create;
-  //ARequestInfo.Params
-   // ARequestInfo.URI
-  trtr.LoadFromFile(wwwpath + 'D:\1\2019\07\HTTPServerTest\1.htm');
+ // AResponseInfo.ContentText :=
+  GetHTML(ARequestInfo.Params.Text, ARequestInfo.URI, ARequestInfo.Host, AResponseInfo);
+  cook := AResponseInfo.Cookies.Add;
+  cook.CookieName := 'authToken';
+  cook.Value      := 'MD5';
+  cook.Expires    := Now() + 10;
+  cook.Domain     := ARequestInfo.Host;
+//  AResponseInfo.Cookies.AddCookie(cook, ARequestInfo.Host);
 
+  AResponseInfo.Cookies.AddClientCookies('dfgdfgdfgf');
 
-// AResponseInfo.ContentText
+ // ASource := TIdCookies.Create;
+ // ASource.AddCookies(cook);
+ // AResponseInfo.Cookies.AddCookies(cook);
+//  AResponseInfo.Cookies.AddClientCookie('123=321');
 end;
 
 procedure TDataModule2.IdTCPServer1Disconnect(AContext: TIdContext);
