@@ -2,9 +2,10 @@ unit HtmlUnit;
 
 interface
 
-uses System.Classes, System.sysutils, System.RegularExpressions, varsUnit, IdCustomHTTPServer, jobsUnit;
+uses System.Classes, System.sysutils, System.RegularExpressions,
+    varsUnit, IdCustomHTTPServer, jobsUnit, MySQLUnit, IdCookie;
 
-function GetHTML(Param, URL, Host : string; var AResponseInfo: TIdHTTPResponseInfo): string;
+function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
 
 implementation
 
@@ -20,7 +21,13 @@ begin
 
 end;
 
-function GetHTML(Param, URL, Host : string; var AResponseInfo: TIdHTTPResponseInfo): string;
+function CheckSession(ARequestInfo: TIdHTTPRequestInfo) : boolean;
+begin
+
+end;
+
+
+function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
 var
   params  : Tstringlist;
   Reg     : TRegEx;
@@ -29,59 +36,81 @@ var
   response  : TStringList;
   filename  : string;
 
+  Host      : string;
   job1      : Tjobrec;
+
+////////////////////////////
+  AuthToken     : string;
+  IndexValue    : integer;
+  RequestPage   : string;
+  ClientCookie  : TIdCookie;
+
+  cook          : TIdCookie;
+  Login, pass   : string;
 begin
-  response  := nil;
-  params    := nil;
- // Reg       := nil;
+  response    := nil;
+  params      := nil;
+  RequestPage := ARequestInfo.URI;
+  Host        := ARequestInfo.Host.Substring(0, ARequestInfo.Host.IndexOf(':'));
+
   try
-    response  := TStringList.Create;
-    params    := Tstringlist.Create;
-    params.Text := Param;
-    Host  := Host.Substring(0, Host.IndexOf(':'));
-
- //   if ARequestInfo.Command <> 'GET' then
+    ClientCookie := ARequestInfo.Cookies.Cookie['AuthToken', Host];
+    if ClientCookie = nil then
     begin
-
-      if URL = '/' then
+      if RequestPage <> '/auth.html' then
       begin
-        URL := wwwpathSeparator + 'index.html';
+        AResponseInfo.Redirect('/auth.html');
+        RequestPage :=  '/auth.html';
       end else
       begin
-        URL   := URL.Replace('/', wwwpathSeparator, [rfReplaceAll]);
+        Login := ARequestInfo.Params.Values['par1'];
+        pass  := ARequestInfo.Params.Values['par2'];
+        if (Login <> '') AND (pass <> '') then
+        begin
+          if MySQL_CheckLoginPass(Login, pass) = true  then
+          begin
+            cook := AResponseInfo.Cookies.Add;
+            cook.CookieName := 'AuthToken';
+            cook.Value      := '22222';
+            cook.Expires    := Now() + 10;
+            cook.Domain     := Host;
+          end else
+          begin
+            // Error message
+          end;
+        end else
+        begin
+          // Error message
+        end;
       end;
-      job1.rules := params.Values['rules'];
-      job1.crone := params.Values['crone'];
-      job1.Tags := params.Values['Tags'];
-
-      Jobs.ADDJob(job1);
-      filename := wwwpath + Host +URL;
-     // StringReplace(URL)
-   //   response.LoadFromFile(filename);
-
-
-    //  AResponseInfo.ResponseNo := 501; // 501 ошибка
-//      aFilename := NormalFileName('/501.htm');
-      AResponseInfo.ContentType := GenContType(URL);
-      AResponseInfo.ContentStream := TFileStream.Create(filename, fmShareDenyNone);
-
-     // Result  := response.Text;
-
-
-
-
-
-
-
-
-      Reg     := TRegEx.Create('/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/');
-      Match   := Reg.Matches(URL);
-      for I := 0 to Match.Count -1 do
+    end else
+    begin
+      if MySQL_GetHTTPSession(ClientCookie.Value) = True then
       begin
-        log.SaveLog('URL param ' + Match.Item[i].Value);
+        if CheckSession(ARequestInfo) then
+        begin
+          if RequestPage = '/' then
+          begin
+            RequestPage := wwwpathSeparator + 'index.html';
+          end else
+          begin
+            RequestPage   := RequestPage.Replace('/', wwwpathSeparator, [rfReplaceAll]);
+          end;
+        end else
+        begin
+          // Error message
+        end;
+      end else
+      begin
+        // Error message
+        RequestPage := '/auth.html';
       end;
-
     end;
+
+    filename := wwwpath + Host +RequestPage;
+
+    AResponseInfo.ContentType := GenContType(RequestPage);
+    AResponseInfo.ContentStream := TFileStream.Create(filename, fmShareDenyNone);
 
   finally
     if response <> nil then response.Free;

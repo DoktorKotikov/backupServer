@@ -158,25 +158,8 @@ end;
 
 procedure TDataModule2.IdHTTPServer1CommandGet(AContext: TIdContext;
   ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
-var
-  cook    : TIdCookie;
-  ASource : TIdCookies;
 begin
- // AResponseInfo.ContentText :=
-  GetHTML(ARequestInfo.Params.Text, ARequestInfo.URI, ARequestInfo.Host, AResponseInfo);
-  cook := AResponseInfo.Cookies.Add;
-  cook.CookieName := 'authToken';
-  cook.Value      := 'MD5';
-  cook.Expires    := Now() + 10;
-  cook.Domain     := ARequestInfo.Host;
-//  AResponseInfo.Cookies.AddCookie(cook, ARequestInfo.Host);
-
-  AResponseInfo.Cookies.AddClientCookies('dfgdfgdfgf');
-
- // ASource := TIdCookies.Create;
- // ASource.AddCookies(cook);
- // AResponseInfo.Cookies.AddCookies(cook);
-//  AResponseInfo.Cookies.AddClientCookie('123=321');
+  GetHTML(ARequestInfo, AResponseInfo);
 end;
 
 procedure TDataModule2.IdTCPServer1Disconnect(AContext: TIdContext);

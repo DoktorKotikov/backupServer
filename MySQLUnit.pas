@@ -11,6 +11,9 @@ function MySQL_GetNewJob(): Integer;
 function Mysql_GetAgentsIdFromTags(tags : string): TArray<integer>;
 function MySQL_UpdateJobDate(id : Integer; JobResult : string): Integer;
 
+function MySQL_CheckLoginPass(Login, pass : string) : Boolean;
+function MySQL_GetHTTPSession(AuthToken : string): Boolean;
+
 implementation
 
 uses jobsThreadUnit;
@@ -218,6 +221,16 @@ begin
   query.ExecSQL;
 
   query.Free;
+end;
+
+function MySQL_CheckLoginPass(Login, pass : string) : Boolean;
+begin
+  Result := True;
+end;
+
+function MySQL_GetHTTPSession(AuthToken : string): Boolean;
+begin
+
 end;
 
 end.
