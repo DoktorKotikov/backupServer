@@ -2,7 +2,7 @@ unit MySQLUnit;
 
 interface
 
-uses System.SysUtils, varsUnit, FireDAC, System.Generics.Collections, jobsUnit;
+uses System.SysUtils, varsUnit, FireDAC, System.Generics.Collections, jobsUnit, Data.DB, System.StrUtils, System.Hash;
 
 procedure CreateTables() ;
 function MySQL_CheckLogin(key, ip, name : string; out ID: integer): Integer;
@@ -12,11 +12,24 @@ function Mysql_GetAgentsIdFromTags(tags : string): TArray<integer>;
 function MySQL_UpdateJobDate(id : Integer; JobResult : string): Integer;
 
 function MySQL_CheckLoginPass(Login, pass : string) : Boolean;
-function MySQL_GetHTTPSession(AuthToken : string): Boolean;
+function MySQL_ADDHTTPSession(Login, RemoteIP, UserAgent : string): string;
+function Mysql_GetANDCheckHTTPSession(AuthToken, RemoteIP, UserAgent : string): Boolean;
 
 implementation
 
 uses jobsThreadUnit;
+
+
+function CalcSessionKey(Login, UserAgent, sessionSalt : string): string;
+begin
+  Result := System.Hash.THashMD5.GetHashString(Login + sessionSalt);
+  Result := Result + sessionSalt + UserAgent;
+  Result := System.Hash.THashSHA2.GetHashString(Result+ passSalt, System.Hash.SHA512);
+  Result := System.Hash.THashSHA2.GetHashString(Result+ sessionSalt, System.Hash.SHA512);
+  Result := System.Hash.THashSHA2.GetHashString(Result+ sessionSalt, System.Hash.SHA512);
+  Result := System.Hash.THashSHA2.GetHashString(Result+ passSalt+sessionSalt, System.Hash.SHA512);
+  Result := System.Hash.THashSHA2.GetHashString(Result, System.Hash.SHA512);
+end;
 
 procedure CreateTables() ;
 var
@@ -224,13 +237,91 @@ begin
 end;
 
 function MySQL_CheckLoginPass(Login, pass : string) : Boolean;
+var
+  query   : TSQL;
 begin
-  Result := True;
+  Result  := false;
+  query   := SQL.Create_SQL;
+  query.Params.Clear;
+
+  query.SQL.Text := 'SELECT * FROM `users` WHERE `enabled` = 1 AND `LOGIN` = :login AND `pass` = SHA1(:pass)';
+  query.Params.CreateParam(ftString, 'login', ptInput);
+  query.Params.CreateParam(ftString, 'pass', ptInput);
+
+  query.ParamByName('login').AsString := Login;
+  query.ParamByName('pass').AsString  := pass;
+
+
+  query.Open;
+
+  if query.RecordCount = 1 then
+  begin
+    query.RecNo := 1;
+    if query.FieldByName('pass').AsString = System.Hash.THashSHA1.GetHashString(pass) then
+    begin
+      Result := True;
+    end;
+  end;
+  query.Free;
 end;
 
-function MySQL_GetHTTPSession(AuthToken : string): Boolean;
+function MySQL_ADDHTTPSession(Login, RemoteIP, UserAgent : string): string;
+var
+  query   : TSQL;
+  sessionSalt : string;
 begin
+  query := SQL.Create_SQL;
+  query.Params.Clear;
+  query.SQL.Text := 'INSERT INTO `session` (`login`,`RemoteIP`,`UserAgent`, `sessionKey`, `sessionSalt`) VALUES (:Login, :RemoteIP, :UserAgent, :sessionKey, :sessionSalt)';
 
+  query.Params.CreateParam(ftString, 'login', ptInput);
+  query.Params.CreateParam(ftString, 'RemoteIP', ptInput);
+  query.Params.CreateParam(ftString, 'UserAgent', ptInput);
+  query.Params.CreateParam(ftString, 'sessionKey', ptInput);
+  query.Params.CreateParam(ftString, 'sessionSalt', ptInput);
+
+
+  sessionSalt := System.Hash.THashSHA2.GetHashString(GenerateSalt, System.Hash.SHA512);
+  Result := CalcSessionKey(Login, UserAgent, sessionSalt);
+
+  query.ParamByName('login').AsString         := Login;
+  query.ParamByName('RemoteIP').AsString      := RemoteIP;
+  query.ParamByName('UserAgent').AsString     := UserAgent;
+  query.ParamByName('sessionKey').AsString    := Result;
+  query.ParamByName('sessionSalt').AsString   := sessionSalt;
+  query.ExecSQL;
+
+  query.Free;
+
+end;
+
+
+function Mysql_GetANDCheckHTTPSession(AuthToken, RemoteIP, UserAgent : string): Boolean;
+var
+  query   : TSQL;
+
+begin
+  Result := False;
+  query := SQL.Create_SQL;
+  query.Params.Clear;
+  query.SQL.Text := 'SELECT `id`,`login`, `RemoteIP`,`UserAgent`,`sessionKey`,`dead`,`CreateTime`FROM `session` WHERE `sessionKey` = :AuthToken AND `dead` = 0';
+  query.Params.CreateParam(ftString, 'AuthToken', ptInput);
+  query.ParamByName('AuthToken').AsString  := AuthToken;
+  query.Open;
+
+  if query.RecordCount = 1 then
+  begin
+    query.RecNo := 1;
+    if query.FieldByName('sessionKey').AsString = AuthToken then
+    begin
+      if CalcSessionKey(query.FieldByName('Login').AsString, UserAgent , query.FieldByName('sessionSalt').AsString) = AuthToken then
+      begin
+        Result := True;
+
+      end;
+    end;
+  end;
+  query.Free;
 end;
 
 end.

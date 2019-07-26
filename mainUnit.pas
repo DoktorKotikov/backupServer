@@ -6,7 +6,8 @@ uses
   System.SysUtils, System.Classes, IdBaseComponent, IdComponent, SocketUnit, HtmlUnit,
   IdCustomTCPServer, IdTCPServer, IdContext, jobsUnit, System.JSON, messageExecute, System.SyncObjs, System.Generics.Collections,
   myconfig.Logs, myconfig.ini, varsUnit, IdGlobal, System.Hash, FireDAC, MySQLUnit, jobsThreadUnit,
-  IdCustomHTTPServer, IdHTTPServer, IdCookie
+  IdCustomHTTPServer, IdHTTPServer, IdCookie, IdServerIOHandler, IdSSL,
+  IdSSLOpenSSL
 
   ;
 
@@ -15,6 +16,7 @@ type
   TDataModule2 = class(TDataModule)
     IdTCPServer1: TIdTCPServer;
     IdHTTPServer1: TIdHTTPServer;
+    IdServerIOHandlerSSLOpenSSL1: TIdServerIOHandlerSSLOpenSSL;
     procedure DataModuleCreate(Sender: TObject);
     procedure IdTCPServer1Execute(AContext: TIdContext);
     procedure IdTCPServer1Disconnect(AContext: TIdContext);
@@ -110,23 +112,39 @@ begin
   end;    }
 end;
 
+
 procedure TDataModule2.DataModuleCreate(Sender: TObject);
 var
  test : TSQL;
 begin
-  MyDir   := GetCurrentDir;
-  Jobs :=  TAJobs.Create;
-  Event       := TEvent.create;
-  HTTPini := TConfigs.Create('HTTP.ini');
+  log := TLogsSaveClasses.Create();
+  MyDir     := GetCurrentDir;
+
+  Jobs      := TAJobs.Create;
+  Event     := TEvent.create;
+  HTTPini   := TConfigs.Create('HTTP.ini');
 
   wwwpath := HTTPini.GetValue_OrSetDefoult('Server', 'path', GetCurrentDir+'\www\').AsString;
+
+  IdServerIOHandlerSSLOpenSSL1.SSLOptions.CertFile := MyDir +'\key\'+ HTTPini.GetValue_OrSetDefoult('SSL', 'CertFile', '.cert').AsString;
+  IdServerIOHandlerSSLOpenSSL1.SSLOptions.KeyFile  := MyDir +'\key\'+ HTTPini.GetValue_OrSetDefoult('SSL', 'KeyFile', '.key').AsString;
+  if  FileExists(IdServerIOHandlerSSLOpenSSL1.SSLOptions.CertFile)
+  and FileExists(IdServerIOHandlerSSLOpenSSL1.SSLOptions.KeyFile) then
+  begin
+    IdHTTPServer1.IOHandler := IdServerIOHandlerSSLOpenSSL1;
+  end else
+  begin
+    log.SaveLog('Error not found CertFiles');
+  end;
+
+
+
   IdHTTPServer1.DefaultPort := HTTPini.GetValue_OrSetDefoult('Server', 'port', '80').AsInteger;
 
   IdHTTPServer1.Active := True;
 
 //  IdTCPServer1 := TIdTCPServer.Create();
   ini := TConfigs.Create('config.ini');
-  log := TLogsSaveClasses.Create();
   SQL := TFireDAC.Create(TFireDAC.DataBaseType.Mysql,
   ini.GetValue_OrSetDefoult('Mysql', 'IP', '127.0.0.1').AsString,
   ini.GetValue_OrSetDefoult('Mysql', 'login', 'admin').AsString,
@@ -135,6 +153,7 @@ begin
   ini.GetValue_OrSetDefoult('Mysql', 'port', '3306').AsInteger,
   ini.GetValue_OrSetDefoult('Mysql', 'Pool_Maximum', '123').AsInteger);
 
+  passSalt := ini.GetValue_OrSetDefoult('System', 'salt', GenerateSalt).AsString;
 //  ini.GetValue_OrSetDefoult('global', 'dbfileName', 'jobs').AsString,
 
   MySQLUnit.CreateTables;

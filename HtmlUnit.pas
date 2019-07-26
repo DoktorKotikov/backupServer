@@ -21,10 +21,7 @@ begin
 
 end;
 
-function CheckSession(ARequestInfo: TIdHTTPRequestInfo) : boolean;
-begin
 
-end;
 
 
 function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
@@ -54,7 +51,7 @@ begin
   Host        := ARequestInfo.Host.Substring(0, ARequestInfo.Host.IndexOf(':'));
 
   try
-    ClientCookie := ARequestInfo.Cookies.Cookie['AuthToken', Host];
+    ClientCookie := ARequestInfo.Cookies.Cookie['AuthToken', ''];
     if ClientCookie = nil then
     begin
       if RequestPage <> '/auth.html' then
@@ -71,9 +68,10 @@ begin
           begin
             cook := AResponseInfo.Cookies.Add;
             cook.CookieName := 'AuthToken';
-            cook.Value      := '22222';
+            cook.Value      :=  MySQL_ADDHTTPSession(Login, ARequestInfo.RemoteIP, ARequestInfo.UserAgent);
             cook.Expires    := Now() + 10;
             cook.Domain     := Host;
+            cook.Secure     := True;
           end else
           begin
             // Error message
@@ -85,24 +83,27 @@ begin
       end;
     end else
     begin
-      if MySQL_GetHTTPSession(ClientCookie.Value) = True then
+      if ClientCookie.IsExpired then
       begin
-        if CheckSession(ARequestInfo) then
+
+      end;
+      if Mysql_GetANDCheckHTTPSession(ClientCookie.Value, ARequestInfo.RemoteIP, ARequestInfo.UserAgent) = True then
+      begin
+        if RequestPage = '/' then
         begin
-          if RequestPage = '/' then
-          begin
-            RequestPage := wwwpathSeparator + 'index.html';
-          end else
-          begin
-            RequestPage   := RequestPage.Replace('/', wwwpathSeparator, [rfReplaceAll]);
-          end;
+          RequestPage := wwwpathSeparator + 'index.html';
         end else
         begin
-          // Error message
+          RequestPage   := RequestPage.Replace('/', wwwpathSeparator, [rfReplaceAll]);
         end;
+        ////
+        ///
+        ///
       end else
       begin
         // Error message
+
+        AResponseInfo.Cookies.Clear;// Delete(ClientCookie.ID);
         RequestPage := '/auth.html';
       end;
     end;

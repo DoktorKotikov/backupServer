@@ -1,7 +1,7 @@
 object DataModule2: TDataModule2
   OldCreateOrder = False
   OnCreate = DataModuleCreate
-  Height = 150
+  Height = 171
   Width = 215
   object IdTCPServer1: TIdTCPServer
     Bindings = <>
@@ -15,7 +15,16 @@ object DataModule2: TDataModule2
     Bindings = <>
     MaxConnections = 100
     OnCommandGet = IdHTTPServer1CommandGet
+    Left = 32
+    Top = 72
+  end
+  object IdServerIOHandlerSSLOpenSSL1: TIdServerIOHandlerSSLOpenSSL
+    SSLOptions.Method = sslvTLSv1_2
+    SSLOptions.SSLVersions = [sslvTLSv1_2]
+    SSLOptions.Mode = sslmUnassigned
+    SSLOptions.VerifyMode = []
+    SSLOptions.VerifyDepth = 0
     Left = 80
-    Top = 24
+    Top = 72
   end
 end
