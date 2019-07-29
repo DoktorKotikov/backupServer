@@ -53,9 +53,8 @@ begin
   log         := TLogsSaveClasses.Create();
 
 
-
+  log.SaveLog('Try to connect HTTP server: ' + Host);
   try
-    log.SaveLog('Try to connect HTTP server: ' + Host);
     ClientCookie := ARequestInfo.Cookies.Cookie['AuthToken', ''];
     if ClientCookie = nil then
     begin
