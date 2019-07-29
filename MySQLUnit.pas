@@ -304,7 +304,7 @@ begin
   Result := False;
   query := SQL.Create_SQL;
   query.Params.Clear;
-  query.SQL.Text := 'SELECT `id`,`login`, `RemoteIP`,`UserAgent`,`sessionKey`,`dead`,`CreateTime`FROM `session` WHERE `sessionKey` = :AuthToken AND `dead` = 0';
+  query.SQL.Text := 'SELECT `id`,`login`, `RemoteIP`,`UserAgent`,`sessionKey`, `sessionSalt`, `dead`,`CreateTime`FROM `session` WHERE `sessionKey` = :AuthToken AND `dead` = 0';
   query.Params.CreateParam(ftString, 'AuthToken', ptInput);
   query.ParamByName('AuthToken').AsString  := AuthToken;
   query.Open;
@@ -313,6 +313,7 @@ begin
   begin
     query.RecNo := 1;
     if query.FieldByName('sessionKey').AsString = AuthToken then
+    if query.FieldByName('dead').AsInteger = 0 then
     begin
       if CalcSessionKey(query.FieldByName('Login').AsString, UserAgent , query.FieldByName('sessionSalt').AsString) = AuthToken then
       begin

@@ -73,7 +73,7 @@ begin
           begin
             cook := AResponseInfo.Cookies.Add;
             cook.CookieName := 'AuthToken';
-            cook.Value      :=  MySQL_ADDHTTPSession(Login, ARequestInfo.RemoteIP, ARequestInfo.UserAgent);
+            cook.Value      := MySQL_ADDHTTPSession(Login, ARequestInfo.RemoteIP, ARequestInfo.UserAgent);
             cook.Expires    := Now() + 10;
             cook.Domain     := Host;
             cook.Secure     := True;
@@ -95,9 +95,10 @@ begin
       end;
       if Mysql_GetANDCheckHTTPSession(ClientCookie.Value, ARequestInfo.RemoteIP, ARequestInfo.UserAgent) = True then
       begin
-        if RequestPage = '/' then
+        if (RequestPage = '/') OR (RequestPage = '/auth.html') then
         begin
           RequestPage := wwwpathSeparator + 'index.html';
+          AResponseInfo.Redirect('/index.html');
         end else
         begin
           RequestPage   := RequestPage.Replace('/', wwwpathSeparator, [rfReplaceAll]);
