@@ -12,9 +12,10 @@ implementation
 function GenContType(filename : string) : string;
 begin
   filename := filename.Substring(filename.IndexOf('.')+1, 10);
-  if (filename = 'htm') or (filename = 'html') then Result := 'text/html' else
+  if (filename = 'htm') or (filename = 'html') then Result := 'text/html; charset=UTF-8' else
   if filename = 'ico' then Result := 'image/xicon' else
   if filename = 'mp4' then Result := 'video/mp4' else
+  if filename = 'css' then Result := 'text/css; charset=UTF-8' else
 
 
 
@@ -22,7 +23,17 @@ begin
 end;
 
 
+function CheckAccessPage(RequestPage : string): boolean;
+var
+  i : integer;
+begin
+  Result := False;
+  if Pos('/css/', RequestPage) = 1 then Result := true;
+  if RequestPage = '/favicon.ico'   then Result := true;
 
+
+
+end;
 
 function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
 var
@@ -55,62 +66,74 @@ begin
 
   log.SaveLog('Try to connect HTTP server: ' + Host);
   try
+<<<<<<< HEAD
     ClientCookie := ARequestInfo.Cookies.Cookie['AuthToken', ''];
     if ClientCookie = nil then
+=======
+
+    log.SaveLog('Try to connect HTTP server: ' + Host);
+    if CheckAccessPage(RequestPage) = false then
+>>>>>>> origin/master
     begin
-      if RequestPage <> '/auth.html' then
+      ClientCookie := ARequestInfo.Cookies.Cookie['AuthToken', ''];
+      if ClientCookie = nil then
       begin
-        AResponseInfo.Redirect('/auth.html');
-        RequestPage :=  '/auth.html';
-      end else
-      begin
-        Login := ARequestInfo.Params.Values['par1'];
-        pass  := ARequestInfo.Params.Values['par2'];
-        if (Login <> '') AND (pass <> '') then
+        if RequestPage <> '/auth.html' then
         begin
-          if MySQL_CheckLoginPass(Login, pass) = true  then
+          AResponseInfo.Redirect('/auth.html');
+          RequestPage :=  '/auth.html';
+        end else
+        begin
+          Login := ARequestInfo.Params.Values['par1'];
+          pass  := ARequestInfo.Params.Values['par2'];
+          if (Login <> '') AND (pass <> '') then
           begin
-            cook := AResponseInfo.Cookies.Add;
-            cook.CookieName := 'AuthToken';
-            cook.Value      := MySQL_ADDHTTPSession(Login, ARequestInfo.RemoteIP, ARequestInfo.UserAgent);
-            cook.Expires    := Now() + 10;
-            cook.Domain     := Host;
-            cook.Secure     := True;
-            log.SaveLog('MySql verification successful');
+            if MySQL_CheckLoginPass(Login, pass) = true  then
+            begin
+              cook := AResponseInfo.Cookies.Add;
+              cook.CookieName := 'AuthToken';
+              cook.Value      := MySQL_ADDHTTPSession(Login, ARequestInfo.RemoteIP, ARequestInfo.UserAgent);
+              cook.Expires    := Now() + 10;
+              cook.Domain     := Host;
+              cook.Secure     := True;
+              RequestPage := wwwpathSeparator + 'index.html';
+              AResponseInfo.Redirect('/index.html');
+              log.SaveLog('MySql verification successful');
+            end else
+            begin
+              log.SaveLog('Error: Failed check MySQL');
+            end;
           end else
           begin
-            log.SaveLog('Error: Failed check MySQL');
+            log.SaveLog('Error: login or password field is empty');
           end;
-        end else
-        begin
-          log.SaveLog('Error: login or password field is empty');
         end;
-      end;
-    end else
-    begin
-      if ClientCookie.IsExpired then
-      begin
-
-      end;
-      if Mysql_GetANDCheckHTTPSession(ClientCookie.Value, ARequestInfo.RemoteIP, ARequestInfo.UserAgent) = True then
-      begin
-        if (RequestPage = '/') OR (RequestPage = '/auth.html') then
-        begin
-          RequestPage := wwwpathSeparator + 'index.html';
-          AResponseInfo.Redirect('/index.html');
-        end else
-        begin
-          RequestPage   := RequestPage.Replace('/', wwwpathSeparator, [rfReplaceAll]);
-        end;
-        ////
-        ///
-        ///
       end else
       begin
-        log.SaveLog('Cookie check failed');
+        if ClientCookie.IsExpired then
+        begin
 
-        AResponseInfo.Cookies.Clear;// Delete(ClientCookie.ID);
-        RequestPage := '/auth.html';
+        end;
+        if Mysql_GetANDCheckHTTPSession(ClientCookie.Value, ARequestInfo.RemoteIP, ARequestInfo.UserAgent) = True then
+        begin
+          if (RequestPage = '/') OR (RequestPage = '/auth.html') then
+          begin
+            RequestPage := wwwpathSeparator + 'index.html';
+            AResponseInfo.Redirect('/index.html');
+          end else
+          begin
+            RequestPage   := RequestPage.Replace('/', wwwpathSeparator, [rfReplaceAll]);
+          end;
+          ////
+          ///
+          ///
+        end else
+        begin
+          log.SaveLog('Cookie check failed');
+
+          AResponseInfo.Cookies.Clear;// Delete(ClientCookie.ID);
+          RequestPage := '/auth.html';
+        end;
       end;
     end;
 
