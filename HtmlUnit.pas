@@ -3,7 +3,7 @@ unit HtmlUnit;
 interface
 
 uses System.Classes, System.sysutils, System.RegularExpressions,
-    varsUnit, IdCustomHTTPServer, jobsUnit, MySQLUnit, IdCookie;
+    varsUnit, IdCustomHTTPServer, jobsUnit, MySQLUnit, IdCookie, myconfig.Logs;
 
 function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
 
@@ -36,6 +36,7 @@ var
   Host      : string;
   job1      : Tjobrec;
 
+
 ////////////////////////////
   AuthToken     : string;
   IndexValue    : integer;
@@ -49,8 +50,12 @@ begin
   params      := nil;
   RequestPage := ARequestInfo.URI;
   Host        := ARequestInfo.Host.Substring(0, ARequestInfo.Host.IndexOf(':'));
+  log         := TLogsSaveClasses.Create();
+
+
 
   try
+    log.SaveLog('Try to connect HTTP server: ' + Host);
     ClientCookie := ARequestInfo.Cookies.Cookie['AuthToken', ''];
     if ClientCookie = nil then
     begin
@@ -72,13 +77,14 @@ begin
             cook.Expires    := Now() + 10;
             cook.Domain     := Host;
             cook.Secure     := True;
+            log.SaveLog('MySql verification successful');
           end else
           begin
-            // Error message
+            log.SaveLog('Error: Failed check MySQL');
           end;
         end else
         begin
-          // Error message
+          log.SaveLog('Error: login or password field is empty');
         end;
       end;
     end else
@@ -101,7 +107,7 @@ begin
         ///
       end else
       begin
-        // Error message
+        log.SaveLog('Cookie check failed');
 
         AResponseInfo.Cookies.Clear;// Delete(ClientCookie.ID);
         RequestPage := '/auth.html';

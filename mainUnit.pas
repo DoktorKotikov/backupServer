@@ -143,6 +143,8 @@ begin
 
   IdHTTPServer1.Active := True;
 
+  log.SaveLog('HTTP is active. Port : ' + HTTPini.GetValue_OrSetDefoult('Server', 'port', '80').AsString);
+
 //  IdTCPServer1 := TIdTCPServer.Create();
   ini := TConfigs.Create('config.ini');
   SQL := TFireDAC.Create(TFireDAC.DataBaseType.Mysql,
