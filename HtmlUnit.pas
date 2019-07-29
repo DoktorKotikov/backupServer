@@ -66,14 +66,7 @@ begin
 
   log.SaveLog('Try to connect HTTP server: ' + Host);
   try
-<<<<<<< HEAD
-    ClientCookie := ARequestInfo.Cookies.Cookie['AuthToken', ''];
-    if ClientCookie = nil then
-=======
-
-    log.SaveLog('Try to connect HTTP server: ' + Host);
     if CheckAccessPage(RequestPage) = false then
->>>>>>> origin/master
     begin
       ClientCookie := ARequestInfo.Cookies.Cookie['AuthToken', ''];
       if ClientCookie = nil then
