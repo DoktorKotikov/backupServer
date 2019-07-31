@@ -1,0 +1,152 @@
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+@font-face {
+	font-family: "Ubuntu";
+	src: local("Ubuntu Bold"), local("Ubuntu-Bold"), url("../fonts/Ubuntu-Bold.woff2") format("woff2");
+	font-weight: bold;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Ubuntu";
+	src: local("Ubuntu Light"), local("Ubuntu-Light"), url("../fonts/Ubuntu-Light.woff2") format("woff2");
+	font-weight: 300;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Ubuntu";
+	src: local("Ubuntu Regular"), local("Ubuntu-Regular"), url("../fonts/Ubuntu-Regular.woff2") format("woff2");
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Ubuntu";
+	src: local("Ubuntu Medium"), local("Ubuntu-Medium"), url("../fonts/Ubuntu-Medium.woff2") format("woff2");
+	font-weight: 500;
+	font-style: normal;
+}
+
+html {
+	font-size: 14px;
+    font-weight: normal;
+    font-family: 'Ubuntu', sans-serif;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+
+.w-100 {
+	width: 100% !important;
+}
+
+.d-flex {
+    display: flex;
+}
+
+.grow-1 {
+    flex-grow: 1;
+}
+
+.container {
+	width: 100%;
+	margin: 0 auto;
+}
+
+.container-inner {
+    padding: 0 15px;
+}
+
+header,
+main {
+    display: block;
+}
+
+a {
+    text-decoration: none;
+    color: #827ffe;
+}
+
+a:hover {
+    text-decoration: none;
+    color: #403866;
+}
+
+ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.header {
+    line-height: 80px;
+    margin-bottom: 30px;
+    box-shadow: 0 1px 10px rgba(0, 0, 0, .1);
+}
+
+.brand {
+    font-size: 2rem;
+    font-weight: 500;
+}
+
+.brand span {
+    color: #403866;
+}
+
+.brand:hover {
+    color: #403866;
+}
+
+.sidebar {
+    width: 320px;
+}
+
+.sidebar-inner,
+.content {
+    padding: 15px;
+}
+
+.sidebar-inner .sidebar-item {
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #fff;
+    /* box-shadow: 0 1px 10px rgba(0, 0, 0, .1); */
+    border: 2px solid #f6f6f6;
+}
+
+.sidebar-item li {
+    margin: 10px 0;
+}
+
+.sidebar-item-title {
+    font-weight: 500;
+    font-size: 1.225rem;
+    color: #454545;
+    margin-bottom: 15px;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+table th,
+table td {
+    padding: 0.5rem 0.325rem;
+}
+
+table th {
+    border-bottom: 2px solid #eee;
+    text-align: inherit;
+}
+
+table td {
+    border-bottom: 1px solid #f2f2f2;
+}
