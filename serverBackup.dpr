@@ -13,7 +13,8 @@ uses
   messageExecute in 'messageExecute.pas',
   MySQLUnit in 'MySQLUnit.pas',
   jobsThreadUnit in 'jobsThreadUnit.pas',
-  HtmlUnit in 'HtmlUnit.pas';
+  HtmlUnit in 'HtmlUnit.pas',
+  serfHTTPUnit in 'serfHTTPUnit.pas';
 
 begin
   try

@@ -132,11 +132,12 @@ begin
   and FileExists(IdServerIOHandlerSSLOpenSSL1.SSLOptions.KeyFile) then
   begin
     IdHTTPServer1.IOHandler := IdServerIOHandlerSSLOpenSSL1;
+    HTTPini.Set_and_Save('SSL', 'Secure', 'True')
   end else
   begin
     log.SaveLog('Error not found CertFiles');
+    HTTPini.Set_and_Save('SSL', 'Secure', 'False')
   end;
-
 
 
   IdHTTPServer1.DefaultPort := HTTPini.GetValue_OrSetDefoult('Server', 'port', '80').AsInteger;

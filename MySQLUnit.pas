@@ -15,6 +15,8 @@ function MySQL_CheckLoginPass(Login, pass : string) : Boolean;
 function MySQL_ADDHTTPSession(Login, RemoteIP, UserAgent : string): string;
 function Mysql_GetANDCheckHTTPSession(AuthToken, RemoteIP, UserAgent : string): Boolean;
 
+
+
 implementation
 
 uses jobsThreadUnit;

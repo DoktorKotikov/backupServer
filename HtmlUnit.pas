@@ -3,7 +3,7 @@ unit HtmlUnit;
 interface
 
 uses System.Classes, System.sysutils, System.RegularExpressions,
-    varsUnit, IdCustomHTTPServer, jobsUnit, MySQLUnit, IdCookie, myconfig.Logs;
+    varsUnit, IdCustomHTTPServer, jobsUnit, MySQLUnit, IdCookie, myconfig.Logs, IdSSL; //, serfHTTPUnit
 
 function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
 
@@ -27,8 +27,8 @@ function CheckAccessPage(RequestPage : string): boolean;
 var
   i : integer;
 begin
-  Result := False;
-  if Pos('/css/', RequestPage) = 1 then Result := true;
+  Result := false;
+  if Pos('/assets/', RequestPage) = 1 then Result := true;
   if RequestPage = '/favicon.ico'   then Result := true;
 
 
@@ -60,9 +60,11 @@ begin
   response    := nil;
   params      := nil;
   RequestPage := ARequestInfo.URI;
-  Host        := ARequestInfo.Host.Substring(0, ARequestInfo.Host.IndexOf(':'));
-  log         := TLogsSaveClasses.Create();
-
+  Host := ARequestInfo.Host;
+  if ARequestInfo.Host.Contains(':') then
+  begin
+    Host        := ARequestInfo.Host.Substring(0, ARequestInfo.Host.IndexOf(':'));
+  end;
 
   log.SaveLog('Try to connect HTTP server: ' + Host);
   try
@@ -88,10 +90,14 @@ begin
               cook.Value      := MySQL_ADDHTTPSession(Login, ARequestInfo.RemoteIP, ARequestInfo.UserAgent);
               cook.Expires    := Now() + 10;
               cook.Domain     := Host;
-              cook.Secure     := True;
+              cook.Secure     := HTTPini.GetValue('SSL', 'Secure').AsBoolean;
+
+
               RequestPage := wwwpathSeparator + 'index.html';
               AResponseInfo.Redirect('/index.html');
               log.SaveLog('MySql verification successful');
+
+              //refreshIndex();
             end else
             begin
               log.SaveLog('Error: Failed check MySQL');
@@ -133,6 +139,7 @@ begin
     filename := wwwpath + Host +RequestPage;
 
     AResponseInfo.ContentType := GenContType(RequestPage);
+    //function surfingHTTP()
     AResponseInfo.ContentStream := TFileStream.Create(filename, fmShareDenyNone);
 
   finally
