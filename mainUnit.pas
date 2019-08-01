@@ -125,24 +125,27 @@ begin
   HTTPini   := TConfigs.Create('HTTP.ini');
 
   wwwpath := HTTPini.GetValue_OrSetDefoult('Server', 'path', GetCurrentDir+'\www\').AsString;
-
-  IdServerIOHandlerSSLOpenSSL1.SSLOptions.CertFile := MyDir +'\key\'+ HTTPini.GetValue_OrSetDefoult('SSL', 'CertFile', '.cert').AsString;
-  IdServerIOHandlerSSLOpenSSL1.SSLOptions.KeyFile  := MyDir +'\key\'+ HTTPini.GetValue_OrSetDefoult('SSL', 'KeyFile', '.key').AsString;
-  if  FileExists(IdServerIOHandlerSSLOpenSSL1.SSLOptions.CertFile)
-  and FileExists(IdServerIOHandlerSSLOpenSSL1.SSLOptions.KeyFile) then
+  enableSSL := HTTPini.GetValue_OrSetDefoult('SSL', 'Secure', 'False').AsBoolean;
+  if enableSSL then
   begin
-    IdHTTPServer1.IOHandler := IdServerIOHandlerSSLOpenSSL1;
-    HTTPini.Set_and_Save('SSL', 'Secure', 'True')
-  end else
-  begin
-    log.SaveLog('Error not found CertFiles');
-    HTTPini.Set_and_Save('SSL', 'Secure', 'False')
+    IdServerIOHandlerSSLOpenSSL1.SSLOptions.CertFile := MyDir +'\key\'+ HTTPini.GetValue_OrSetDefoult('SSL', 'CertFile', '.cert').AsString;
+    IdServerIOHandlerSSLOpenSSL1.SSLOptions.KeyFile  := MyDir +'\key\'+ HTTPini.GetValue_OrSetDefoult('SSL', 'KeyFile', '.key').AsString;
+    if  FileExists(IdServerIOHandlerSSLOpenSSL1.SSLOptions.CertFile)
+    and FileExists(IdServerIOHandlerSSLOpenSSL1.SSLOptions.KeyFile) then
+    begin
+      IdHTTPServer1.IOHandler := IdServerIOHandlerSSLOpenSSL1;
+    end else
+    begin
+      log.SaveLog('Error not found CertFiles');
+    end;
   end;
+
 
 
   IdHTTPServer1.DefaultPort := HTTPini.GetValue_OrSetDefoult('Server', 'port', '80').AsInteger;
 
   IdHTTPServer1.Active := True;
+
 
   log.SaveLog('HTTP is active. Port : ' + IdHTTPServer1.DefaultPort.ToString);
 

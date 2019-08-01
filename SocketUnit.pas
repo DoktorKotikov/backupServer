@@ -2,7 +2,7 @@ unit SocketUnit;
 
 interface
 
-uses System.SyncObjs, System.Generics.Collections, System.Classes;
+uses System.SyncObjs, System.Generics.Collections, System.Classes, System.SysUtils;
 
 type
   TSocketConf = class
@@ -31,6 +31,7 @@ type
     function AddNewSocket(Hach : integer;  ip : string) : TSocketConf;
     function GetSocketConf(Hach : integer; out SocketConf : TSocketConf) : boolean;
     function FoundConnect(agentID : Integer; out SocketConf : TSocketConf) : boolean;
+    function getActiveSockets(): string;
   end;
 
 var
@@ -96,6 +97,24 @@ begin
 
       Result := false;
 
+  finally
+    CS.Leave;
+  end;
+end;
+
+function TSocketsAll.getActiveSockets(): string;
+var
+  SocketConf1 : TSocketConf;
+begin
+  try
+    CS.Enter;
+    Result := '';
+      for SocketConf1 in Sockets.Values do
+      begin
+      Result := Result +  '<tr>';
+      Result := Result +  '<td>' + SocketConf1.client_IP + '</td><td>' +inttostr(SocketConf1.ConnectType)+'</td>';
+      Result := Result +  '</tr>';
+    end;
   finally
     CS.Leave;
   end;

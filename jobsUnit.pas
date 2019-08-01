@@ -2,10 +2,18 @@ unit jobsUnit;
 
 interface
 
-uses System.Generics.Collections, System.classes, System.SysUtils,
+uses System.Generics.Collections, System.classes, System.SysUtils, System.SyncObjs,
 
     varsUnit,
     System.JSON;
+
+////////////////////////////////////////////////////////////////////////////
+///
+///
+/// Модуль устарел, надо выпиливать
+///
+///  //////////////////////////////////////////////////////////////////////
+
 
 type
   Tjobrec = record
@@ -22,8 +30,12 @@ type
 
   TAJobs = class
   private
+    CS       : TCriticalSection;
     jobsList : TList<Tjobrec>;
-    function SafeJobsInFile() : integer;
+
+    function SaveJobsInDB() : integer;
+    function LoadJobsFromDB() : integer;
+
   public
     function ADDJob(job : Tjobrec) : integer;
     constructor Create();
@@ -39,25 +51,43 @@ implementation
 
 function TAJobs.ADDJob(job : Tjobrec) : integer;
 begin
-  job.ID := jobsList.Count;
-  jobsList.Add(job);
-  Self.SafeJobsInFile;
+  try
+    CS.Enter;
+    job.ID := jobsList.Count;
+    jobsList.Add(job);
+    Self.SaveJobsInDB;
+  finally
+    CS.Leave;
+  end;
 end;
 
-function TAJobs.SafeJobsInFile() : integer;
+
+function TAJobs.SaveJobsInDB() : integer;
 var
   filjobs : TFileStream;
   i : Integer;
   Job1 : Tjobrec;
 begin
-  filjobs := TFileStream.Create(mydir+'\jobs.db', fmOpenReadWrite OR fmCreate);
+ { filjobs := TFileStream.Create(mydir+'\jobs.db', fmOpenReadWrite OR fmCreate);
   for I := 0 to jobsList.Count-1 do
   begin
     Job1 := jobsList.Items[i];
     filjobs.Write(Job1, SizeOf(Tjobrec));
   end;
 
-  filjobs.Free;
+  filjobs.Free;  }
+end;
+
+function TAJobs.LoadJobsFromDB() : integer;
+var
+  Job1 : Tjobrec;
+begin
+  try
+    CS.Enter;
+   // jobsList
+  finally
+    CS.Leave;
+  end;
 end;
 
 constructor TAJobs.Create();
@@ -65,8 +95,10 @@ var
   filjobs : TFileStream;
   Job1 : Tjobrec;
 begin
+  CS       := TCriticalSection.Create;
   jobsList := TList<Tjobrec>.Create();
-  filjobs := TFileStream.Create(mydir+'\jobs.db', fmOpenReadWrite OR fmCreate);
+  LoadJobsFromDB();
+{  filjobs := TFileStream.Create(mydir+'\jobs.db', fmOpenReadWrite OR fmCreate);
   filjobs.Position := 0;
 
   while filjobs.Position > filjobs.Size do
@@ -76,7 +108,7 @@ begin
   end;
 
  // SetLength(jobs, 0);
-  filjobs.Free;
+  filjobs.Free;}
 end;
 
 destructor TAJobs.Free();

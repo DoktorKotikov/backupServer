@@ -18,8 +18,10 @@ type
     procedure Execute; override;
   public
     constructor Create();
+
     procedure AddJob(job : Tjobrec);
     function  GetJob_toDo(out jobrec : Tjobrec) : boolean;
+    function  getAllJobs_HTML(): string;
 
   end;
 
@@ -197,6 +199,30 @@ begin
   if Quere.Count > 0
     then jobrec := Quere.Dequeue
     else Result := false;
+
+  finally
+    CS.Leave;
+  end;
+end;
+
+
+function TjobsThread.getAllJobs_HTML(): string;
+var
+  i : integer;
+  suite: string;
+begin
+  try
+    CS.Enter;
+    Result := '';
+    suite := '/jobs.html' ;
+    for I := 0 to Length(jobs)-1 do
+    begin
+      Result := Result +  '<tr>';
+      Result := Result +  '<td><a href="'+suite+'?number='+jobs[i].ID.ToString+'">' + jobs[i].ID.ToString + '</a></td><td>' +jobs[i].Tags+'</td><td>' + jobs[i].rules + '</td><td>' +jobs[i].crone+'</td>';
+      Result := Result +  '</tr>';
+    end;
+
+
 
   finally
     CS.Leave;

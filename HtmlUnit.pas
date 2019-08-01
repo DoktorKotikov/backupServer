@@ -3,7 +3,7 @@ unit HtmlUnit;
 interface
 
 uses System.Classes, System.sysutils, System.RegularExpressions,
-    varsUnit, IdCustomHTTPServer, jobsUnit, MySQLUnit, IdCookie, myconfig.Logs, IdSSL; //, serfHTTPUnit
+    varsUnit, IdCustomHTTPServer, jobsThreadUnit, jobsUnit, MySQLUnit, IdCookie, myconfig.Logs, IdSSL, SocketUnit; //, serfHTTPUnit
 
 function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
 
@@ -35,40 +35,15 @@ begin
 
 end;
 
-function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
+function authClient(ARequestInfo :TIdHTTPRequestInfo; var AResponseInfo: TIdHTTPResponseInfo;
+                                      var RequestPage   : string; var Host: string): Boolean;
 var
-  params  : Tstringlist;
-  Reg     : TRegEx;
-  Match   : TMatchCollection;
-  i       : Integer;
-  response  : TStringList;
-  filename  : string;
-
-  Host      : string;
-  job1      : Tjobrec;
-
-
-////////////////////////////
-  AuthToken     : string;
-  IndexValue    : integer;
-  RequestPage   : string;
   ClientCookie  : TIdCookie;
-
   cook          : TIdCookie;
   Login, pass   : string;
 begin
-  response    := nil;
-  params      := nil;
-  RequestPage := ARequestInfo.URI;
-  Host := ARequestInfo.Host;
-  if ARequestInfo.Host.Contains(':') then
-  begin
-    Host        := ARequestInfo.Host.Substring(0, ARequestInfo.Host.IndexOf(':'));
-  end;
-
-  log.SaveLog('Try to connect HTTP server: ' + Host);
-  try
-    if CheckAccessPage(RequestPage) = false then
+  Result := False;
+  if CheckAccessPage(RequestPage) = false then
     begin
       ClientCookie := ARequestInfo.Cookies.Cookie['AuthToken', ''];
       if ClientCookie = nil then
@@ -90,14 +65,14 @@ begin
               cook.Value      := MySQL_ADDHTTPSession(Login, ARequestInfo.RemoteIP, ARequestInfo.UserAgent);
               cook.Expires    := Now() + 10;
               cook.Domain     := Host;
-              cook.Secure     := HTTPini.GetValue('SSL', 'Secure').AsBoolean;
+              cook.Secure     := enableSSL;
 
 
               RequestPage := wwwpathSeparator + 'index.html';
               AResponseInfo.Redirect('/index.html');
               log.SaveLog('MySql verification successful');
 
-              //refreshIndex();
+
             end else
             begin
               log.SaveLog('Error: Failed check MySQL');
@@ -123,9 +98,7 @@ begin
           begin
             RequestPage   := RequestPage.Replace('/', wwwpathSeparator, [rfReplaceAll]);
           end;
-          ////
-          ///
-          ///
+          Result := True;
         end else
         begin
           log.SaveLog('Cookie check failed');
@@ -135,13 +108,76 @@ begin
         end;
       end;
     end;
+end;
 
-    filename := wwwpath + Host +RequestPage;
 
-    AResponseInfo.ContentType := GenContType(RequestPage);
-    //function surfingHTTP()
-    AResponseInfo.ContentStream := TFileStream.Create(filename, fmShareDenyNone);
+function refreshIndex(filename : string): string;
+var
+  list    : TStringList;
+begin
 
+  list     := TStringList.Create;
+  try
+    list.LoadFromFile(filename);
+    result:=list.text;
+  finally
+    list.Free;
+  end;
+
+  result := StringReplace(result, '[BackupServer_TASCkList]', jobsThread.getAllJobs_HTML, [rfReplaceAll]);
+//  result := StringReplace(result, 'FSDWEF#$WR#W_TASCk', '77777#####', [rfReplaceAll]);
+//  result := StringReplace(result, 'FSDWEF#$WR#W_TASCk', '77777#####', [rfReplaceAll]);
+//  result := StringReplace(result, 'FSDWEF#$WR#W_TASCk', '77777#####', [rfReplaceAll]);
+  Result := StringReplace(Result, '[socketConfTable_Active]', allSockets.getActiveSockets, [rfReplaceAll]);
+end;
+
+
+function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
+var
+  params  : Tstringlist;
+  Reg     : TRegEx;
+  Match   : TMatchCollection;
+  i       : Integer;
+  response  : TStringList;
+  filename  : string;
+
+  Host      : string;
+  job1      : Tjobrec;
+
+
+////////////////////////////
+  AuthToken     : string;
+  IndexValue    : integer;
+  RequestPage   : string;
+
+
+begin
+  response    := nil;
+  params      := nil;
+  RequestPage := ARequestInfo.URI;
+  Host := ARequestInfo.Host;
+  if ARequestInfo.Host.Contains(':') then
+  begin
+    Host        := ARequestInfo.Host.Substring(0, ARequestInfo.Host.IndexOf(':'));
+  end;
+
+  //log.SaveLog('Try to connect HTTP server: ' + Host);
+  try
+    if  authClient(ARequestInfo, AResponseInfo, RequestPage, Host) then
+    begin
+      filename := wwwpath + Host +RequestPage;
+      AResponseInfo.ContentText := refreshIndex(filename);
+      AResponseInfo.ContentType := GenContType(RequestPage);
+
+  //    AResponseInfo.ContentStream := TFileStream.Create(filename, fmShareDenyNone);
+    end else
+    begin
+      filename := wwwpath + Host +RequestPage;
+
+      AResponseInfo.ContentType := GenContType(RequestPage);
+
+      AResponseInfo.ContentStream := TFileStream.Create(filename, fmShareDenyNone);
+    end;
   finally
     if response <> nil then response.Free;
     if params <> nil then params.Free;

@@ -36,6 +36,8 @@ var
   wwwpathSeparator  : Char = '\';
   passSalt    : string;
 
+  enableSSL   : Boolean;
+
 function GenerateSalt(): string;
 implementation
 
