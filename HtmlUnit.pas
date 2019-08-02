@@ -194,7 +194,7 @@ begin
       HTML  := TStringList.Create;
       HTML.WriteBOM := false;
       filename := wwwpath + Host +RequestPage;
-      HTML.LoadFromFile(filename, TEncoding.UTF8);
+      HTML.LoadFromFile(filename);
       AResponseInfo.ContentEncoding := 'utf-8';
       HTML.Text := Localization_HTML(RequestPage, HTML.Text);
       AResponseInfo.ContentType := GenContType(RequestPage);
