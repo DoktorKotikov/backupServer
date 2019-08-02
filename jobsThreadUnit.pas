@@ -218,7 +218,7 @@ begin
     for I := 0 to Length(jobs)-1 do
     begin
       Result := Result +  '<tr>';
-      Result := Result +  '<td><a href="'+suite+'?number='+jobs[i].ID.ToString+'">' + jobs[i].ID.ToString + '</a></td><td>' +jobs[i].Tags+ '</td><td>' + jobs[i].JobName + '</td><td>' + jobs[i].rules + '</td><td>' +jobs[i].crone+'</td>';
+      Result := Result +  '<td><a href="'+suite+'?number='+jobs[i].ID.ToString+'">' + jobs[i].ID.ToString + '</a></td><td>' +jobs[i].Tags+ '</td><td>' + jobs[i].JobName + '</td><td>' + jobs[i].rules + '</td><td>' +jobs[i].crone+'</td><td>'+DateTimeToStr(jobs[i].NextJobTime)+ '</td>';
       Result := Result +  '</tr>';
     end;
 
