@@ -3,7 +3,7 @@ unit HtmlUnit;
 interface
 
 uses System.Classes, System.sysutils, System.RegularExpressions,
-    varsUnit, IdCustomHTTPServer, jobsThreadUnit, jobsUnit, MySQLUnit, IdCookie, myconfig.Logs, IdSSL, SocketUnit; //, serfHTTPUnit
+    varsUnit, IdCustomHTTPServer, jobsThreadUnit, MySQLUnit, IdCookie, myconfig.Logs, IdSSL, SocketUnit; //, serfHTTPUnit
 
 function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
 
@@ -119,16 +119,17 @@ begin
   list     := TStringList.Create;
   try
     list.LoadFromFile(filename);
-    result:=list.text;
+    Result:=list.text;
   finally
     list.Free;
   end;
 
-  result := StringReplace(result, '[BackupServer_TASCkList]', jobsThread.getAllJobs_HTML, [rfReplaceAll]);
+  Result := StringReplace(Result, '[BackupServer_TASCkList]', jobsThread.getAllJobs_HTML, [rfReplaceAll]);
+  Result := StringReplace(Result, '[socketConfTable_Active]', MySQL_Agents_GetAllAgents_HTML, [rfReplaceAll]);
+
+  //  result := StringReplace(result, 'FSDWEF#$WR#W_TASCk', '77777#####', [rfReplaceAll]);
 //  result := StringReplace(result, 'FSDWEF#$WR#W_TASCk', '77777#####', [rfReplaceAll]);
 //  result := StringReplace(result, 'FSDWEF#$WR#W_TASCk', '77777#####', [rfReplaceAll]);
-//  result := StringReplace(result, 'FSDWEF#$WR#W_TASCk', '77777#####', [rfReplaceAll]);
-  Result := StringReplace(Result, '[socketConfTable_Active]', allSockets.getActiveSockets, [rfReplaceAll]);
 end;
 
 

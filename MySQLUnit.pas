@@ -2,7 +2,7 @@ unit MySQLUnit;
 
 interface
 
-uses System.SysUtils, varsUnit, FireDAC, System.Generics.Collections, jobsUnit, Data.DB, System.StrUtils, System.Hash;
+uses System.SysUtils, varsUnit, FireDAC, System.Generics.Collections, Data.DB, System.StrUtils, System.Hash;
 
 procedure CreateTables() ;
 function MySQL_CheckLogin(key, ip, name : string; out ID: integer): Integer;
@@ -15,6 +15,7 @@ function MySQL_CheckLoginPass(Login, pass : string) : Boolean;
 function MySQL_ADDHTTPSession(Login, RemoteIP, UserAgent : string): string;
 function Mysql_GetANDCheckHTTPSession(AuthToken, RemoteIP, UserAgent : string): Boolean;
 
+function MySQL_Agents_GetAllAgents_HTML(): string;
 
 
 implementation
@@ -169,11 +170,46 @@ begin
   query.SQL.Add('('+JobId.ToString+', "'+FormatDateTime('yyyy-mm-dd hh:mm', NextDate, AFormatSettings)+'", "new", 0)');
   query.ExecSQL;
 
- { query.SQL.Text := 'SELECT last_insert_id()  as `id`;';
-  query.Active  := True;
-  query.RecNo   := 1;
-  jobsDate_ID   := query.FieldByName('id').AsInteger;
-        }
+
+  query.Free;
+end;
+
+function MySQL_ADDNewJobe (jobe : Tjobrec) : integer;
+var
+  query   : TSQL;
+begin
+  query := SQL.Create_SQL;
+  query.SQL.Text  := 'INSERT INTO `jobs` (`jobID`, `JobName`, `Tags`, `rules`, `Crone`, `active`) VALUES ';
+
+  query.SQL.Add('(:jobID, :JobName, :Tags, :rules, :Crone, :active)');
+  query.Params.CreateParam(ftInteger, 'jobID',    ptInput);
+  query.Params.CreateParam(ftString,  'JobName',  ptInput);
+  query.Params.CreateParam(ftString,  'Tags',     ptInput);
+  query.Params.CreateParam(ftString,  'rules',    ptInput);
+  query.Params.CreateParam(ftString,  'Crone',    ptInput);
+  query.Params.CreateParam(ftInteger, 'active',   ptInput);
+
+  query.ParamByName('jobID').AsInteger    := jobe.ID;
+  query.ParamByName('JobName').AsString   := jobe.JobName;
+  query.ParamByName('Tags').AsString      := jobe.Tags;
+  query.ParamByName('rules').AsString     := jobe.rules;
+  query.ParamByName('Crone').AsString     := jobe.crone;
+  query.ParamByName('active').AsInteger   := jobe.active;
+
+
+
+          (*
+(<{jobID: }>,
+<{JobName: }>,
+<{Tags: }>,
+<{rules: }>,
+<{Crone: }>,
+<{active: }>);
+ *)
+
+  query.ExecSQL;
+
+
   query.Free;
 end;
 
@@ -191,10 +227,12 @@ begin
   begin
     query.RecNo     := i;
     job.ID          := query.FieldByName('jobID').AsInteger;
+    job.JobName     := query.FieldByName('JobName').AsString;
+
     job.rules       := query.FieldByName('rules').AsString;
     job.crone       := query.FieldByName('crone').AsString;
     job.Tags        := query.FieldByName('Tags').AsString;
-
+    job.active      := query.FieldByName('active').AsInteger;
     job.NextJobTime := MySQL_GetJobsDate(job.ID);
     jobsThread.AddJob(job);
   //  sender as TjobsThread.AddJob(job);
@@ -301,30 +339,62 @@ end;
 function Mysql_GetANDCheckHTTPSession(AuthToken, RemoteIP, UserAgent : string): Boolean;
 var
   query   : TSQL;
-
 begin
   Result := False;
-  query := SQL.Create_SQL;
-  query.Params.Clear;
-  query.SQL.Text := 'SELECT `id`,`login`, `RemoteIP`,`UserAgent`,`sessionKey`, `sessionSalt`, `dead`,`CreateTime`FROM `session` WHERE `sessionKey` = :AuthToken AND `dead` = 0';
-  query.Params.CreateParam(ftString, 'AuthToken', ptInput);
-  query.ParamByName('AuthToken').AsString  := AuthToken;
-  query.Open;
+  try
 
-  if query.RecordCount = 1 then
-  begin
-    query.RecNo := 1;
-    if query.FieldByName('sessionKey').AsString = AuthToken then
-    if query.FieldByName('dead').AsInteger = 0 then
+    query := SQL.Create_SQL;
+    query.Params.Clear;
+    query.SQL.Text := 'SELECT `id`,`login`, `RemoteIP`,`UserAgent`,`sessionKey`, `sessionSalt`, `dead`,`CreateTime`FROM `session` WHERE `sessionKey` = :AuthToken AND `dead` = 0';
+    query.Params.CreateParam(ftString, 'AuthToken', ptInput);
+    query.ParamByName('AuthToken').AsString  := AuthToken;
+    query.Open;
+
+    if query.RecordCount = 1 then
     begin
-      if CalcSessionKey(query.FieldByName('Login').AsString, UserAgent , query.FieldByName('sessionSalt').AsString) = AuthToken then
+      query.RecNo := 1;
+      if query.FieldByName('sessionKey').AsString = AuthToken then
+      if query.FieldByName('dead').AsInteger = 0 then
       begin
-        Result := True;
+        if CalcSessionKey(query.FieldByName('Login').AsString, UserAgent , query.FieldByName('sessionSalt').AsString) = AuthToken then
+        begin
+          Result := True;
 
+        end;
       end;
     end;
+
+  finally
+    query.Free;
   end;
-  query.Free;
+end;
+
+function MySQL_Agents_GetAllAgents_HTML(): string;
+var
+  query   : TSQL;
+  i       : integer;
+begin
+  try
+    query := SQL.Create_SQL;
+    query.Open('SELECT * FROM `agents`');
+    Result  := '';
+    for I := 1 to query.RecordCount do
+    begin
+      query.RecNo := i;
+      Result  := Result +  #13+ '<tr>'+#13;
+      Result  := Result + '  <td><a href="/jobs.html?number=' + query.FieldByName('ID').AsString+'">'+query.FieldByName('ID').AsString+'</a></td>'
+                      //  + '<td>' + query.FieldByName('ID').AsString + '</td>'
+                        + '<td>' + query.FieldByName('NAME').AsString + '</td>'
+                        + '<td>' + query.FieldByName('TAGS').AsString + '</td>'
+                        + '<td>' + query.FieldByName('STATUS').AsString + '</td>'
+//                        + '<td>' + query.FieldByName('TAGS').AsString + '</td>'
+      ;
+      Result := Result + #13+'</tr>'+#10#13;
+    end;
+
+  finally
+    query.Free;
+  end;
 end;
 
 end.

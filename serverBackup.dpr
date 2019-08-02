@@ -7,14 +7,12 @@ program serverBackup;
 uses
   System.SysUtils,
   mainUnit in 'mainUnit.pas' {DataModule2: TDataModule},
-  jobsUnit in 'jobsUnit.pas',
   varsUnit in 'varsUnit.pas',
   SocketUnit in 'SocketUnit.pas',
   messageExecute in 'messageExecute.pas',
   MySQLUnit in 'MySQLUnit.pas',
   jobsThreadUnit in 'jobsThreadUnit.pas',
-  HtmlUnit in 'HtmlUnit.pas',
-  serfHTTPUnit in 'serfHTTPUnit.pas';
+  HtmlUnit in 'HtmlUnit.pas';
 
 begin
   try

@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, System.Classes, System.SysUtils, varsUnit, MySQLUnit, System.RegularExpressions, DateUtils, System.JSON
-  , SocketUnit, System.Generics.Collections, System.SyncObjs, jobsUnit;
+  , SocketUnit, System.Generics.Collections, System.SyncObjs;
 
 type
 
@@ -218,7 +218,7 @@ begin
     for I := 0 to Length(jobs)-1 do
     begin
       Result := Result +  '<tr>';
-      Result := Result +  '<td><a href="'+suite+'?number='+jobs[i].ID.ToString+'">' + jobs[i].ID.ToString + '</a></td><td>' +jobs[i].Tags+'</td><td>' + jobs[i].rules + '</td><td>' +jobs[i].crone+'</td>';
+      Result := Result +  '<td><a href="'+suite+'?number='+jobs[i].ID.ToString+'">' + jobs[i].ID.ToString + '</a></td><td>' +jobs[i].Tags+ '</td><td>' + jobs[i].JobName + '</td><td>' + jobs[i].rules + '</td><td>' +jobs[i].crone+'</td>';
       Result := Result +  '</tr>';
     end;
 

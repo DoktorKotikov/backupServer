@@ -4,9 +4,26 @@ interface
 
 uses System.SysUtils, myconfig.ini, myconfig.Logs, FireDAC, System.SyncObjs, System.Generics.Collections;
 
+
+type
+  Tjobrec = record
+    //jobsDate_ID : Integer;
+    ID      : integer;
+    JobName : string;
+    rules   : string;
+    crone   : string;
+    Tags    : string;
+    active  : Integer;
+    NextJobTime : TDateTime;
+
+//    constructor Create();
+//    destructor Free();
+  end;
+
 const
   AUTH_TYPE_AUTH_ByIP = 0;
   AUTH_TYPE_AUTH_Bykey = 1;
+
 
    {
 type

@@ -4,7 +4,7 @@ interface
 
 uses
   System.SysUtils, System.Classes, IdBaseComponent, IdComponent, SocketUnit, HtmlUnit,
-  IdCustomTCPServer, IdTCPServer, IdContext, jobsUnit, System.JSON, messageExecute, System.SyncObjs, System.Generics.Collections,
+  IdCustomTCPServer, IdTCPServer, IdContext, System.JSON, messageExecute, System.SyncObjs, System.Generics.Collections,
   myconfig.Logs, myconfig.ini, varsUnit, IdGlobal, System.Hash, FireDAC, MySQLUnit, jobsThreadUnit,
   IdCustomHTTPServer, IdHTTPServer, IdCookie, IdServerIOHandler, IdSSL,
   IdSSLOpenSSL
@@ -120,7 +120,6 @@ begin
   log := TLogsSaveClasses.Create();
   MyDir     := GetCurrentDir;
 
-  Jobs      := TAJobs.Create;
   Event     := TEvent.create;
   HTTPini   := TConfigs.Create('HTTP.ini');
 
