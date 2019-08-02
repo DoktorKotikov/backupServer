@@ -139,6 +139,12 @@ input {
 	background: 0 0;
 	height: 62px;
 	padding: 0 20px 0 38px;
+	border: 1px solid transparent;
+}
+
+.form-text-input:focus {
+	border: 1px solid #827ffe;
+	box-shadow: 0 0 .5rem #9b99ff;
 }
 
 .btn {
