@@ -197,16 +197,6 @@ begin
   query.ParamByName('active').AsInteger   := jobe.active;
 
 
-
-          (*
-(<{jobID: }>,
-<{JobName: }>,
-<{Tags: }>,
-<{rules: }>,
-<{Crone: }>,
-<{active: }>);
- *)
-
   query.ExecSQL;
 
 

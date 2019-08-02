@@ -39,6 +39,11 @@ type
 //    sendto : integer;
 
 
+type
+  TLangKeyAndValue = array [0 .. 1] of string;
+//  TLangPage = Tlist<TLangKeyAndValue>;
+
+
 
 var
   MyDir   : string; // GetCurrentDir
@@ -53,7 +58,12 @@ var
   wwwpathSeparator  : Char = '\';
   passSalt    : string;
 
-  enableSSL   : Boolean;
+  enableSSL     : Boolean;
+//  Localization  : TDictionary<string, TLangPage>;
+
+
+  Localization1 : TDictionary<string, TDictionary<string, Tlist<TLangKeyAndValue>>>;
+  //Localization : TDictionary<string,string>;
 
 function GenerateSalt(): string;
 implementation

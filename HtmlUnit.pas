@@ -2,12 +2,30 @@ unit HtmlUnit;
 
 interface
 
-uses System.Classes, System.sysutils, System.RegularExpressions,
+uses System.Classes, System.sysutils, System.RegularExpressions, System.Generics.Collections,
     varsUnit, IdCustomHTTPServer, jobsThreadUnit, MySQLUnit, IdCookie, myconfig.Logs, IdSSL, SocketUnit; //, serfHTTPUnit
 
 function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
 
 implementation
+
+
+function Localization_HTML(URL, html : string): string;
+var
+  i : integer;
+  UrlsList :  TDictionary<string, Tlist<TLangKeyAndValue>>;
+  KeyAndValue : Tlist<TLangKeyAndValue>;
+begin
+  Result := html;
+  Delete(URL, 1, 1);
+
+  if Localization1.TryGetValue('ENG.ini', UrlsList) = true then
+  if UrlsList.TryGetValue(URL, KeyAndValue) = true then
+  for I := 0 to KeyAndValue.Count-1 do
+  begin
+    Result := StringReplace(Result, '['+KeyAndValue.Items[i][0]+']',  KeyAndValue.Items[i][1], [rfReplaceAll]);
+  end;
+end;
 
 function GenContType(filename : string) : string;
 begin
@@ -151,7 +169,7 @@ var
   IndexValue    : integer;
   RequestPage   : string;
 
-
+  HTML  : TStringList;
 begin
   response    := nil;
   params      := nil;
@@ -173,11 +191,14 @@ begin
   //    AResponseInfo.ContentStream := TFileStream.Create(filename, fmShareDenyNone);
     end else
     begin
+      HTML  := TStringList.Create;
       filename := wwwpath + Host +RequestPage;
-
+      HTML.LoadFromFile(filename);
+      HTML.Text := Localization_HTML(RequestPage, HTML.Text);
       AResponseInfo.ContentType := GenContType(RequestPage);
-
-      AResponseInfo.ContentStream := TFileStream.Create(filename, fmShareDenyNone);
+      AResponseInfo.ContentText := HTML.Text;
+      HTML.Free;
+//      AResponseInfo.ContentStream := TFileStream.Create(filename, fmShareDenyNone);
     end;
   finally
     if response <> nil then response.Free;

@@ -7,7 +7,7 @@ uses
   IdCustomTCPServer, IdTCPServer, IdContext, System.JSON, messageExecute, System.SyncObjs, System.Generics.Collections,
   myconfig.Logs, myconfig.ini, varsUnit, IdGlobal, System.Hash, FireDAC, MySQLUnit, jobsThreadUnit,
   IdCustomHTTPServer, IdHTTPServer, IdCookie, IdServerIOHandler, IdSSL,
-  IdSSLOpenSSL
+  IdSSLOpenSSL, inifiles
 
   ;
 
@@ -113,15 +113,70 @@ begin
 end;
 
 
+procedure LoadLocalization();
+var
+  sr: TSearchRec;
+  Files, URLS, StrList2 : TStringList;
+  I, j, k: Integer;
+  INI_LNG : TIniFile;
+
+  URLList : TDictionary<string, Tlist<TLangKeyAndValue>>;
+  LangKeyAndValueList : Tlist<TLangKeyAndValue>;
+  LangKeyAndValue : TLangKeyAndValue;
+begin
+  Files   := TStringList.Create;
+  URLS  := TStringList.Create;
+  StrList2  := TStringList.Create;
+  Files.Clear;
+  if FindFirst(MyDir + '\www\localhost\lng\*.ini', faAnyFile, sr)=0  then  //ищем  файлы Word  в каталоге
+  repeat
+    Files.Add(sr.Name);
+  until FindNext(sr)<>0;
+  FindClose(sr);
+
+//  Langs := TDictionary<string, TLangPage>.create;
+  for I := 0 to Files.Count-1 do
+  begin // Цикл по файлам
+    INI_LNG := TIniFile.Create(MyDir + '\www\localhost\lng\' + Files[i]);
+    INI_LNG.ReadSections(URLS);
+
+    URLList := TDictionary<string, Tlist<TLangKeyAndValue>>.Create();
+    for j := 0 to URLS.Count-1 do
+    begin  // цикл по секциям
+
+
+      INI_LNG.ReadSection(URLS[j], StrList2);
+      LangKeyAndValueList := Tlist<TLangKeyAndValue>.create;
+      for k := 0 to StrList2.Count-1 do
+      begin // цикл по ключам и значениям в секции
+        LangKeyAndValue[0] := StrList2[k];
+        LangKeyAndValue[1] := INI_LNG.ReadString(URLS[j], StrList2[k], 'Control Panel');
+        LangKeyAndValueList.Add(LangKeyAndValue);
+      end;
+      URLList.Add(URLS[j], LangKeyAndValueList);
+    end;
+    INI_LNG.Free;
+    Localization1.Add(Files[i], URLList);
+  end;
+
+  Files.Free;
+  URLS.Free;
+  StrList2.Free;
+
+end;
+
 procedure TDataModule2.DataModuleCreate(Sender: TObject);
 var
  test : TSQL;
 begin
   log := TLogsSaveClasses.Create();
-  MyDir     := GetCurrentDir;
-
-  Event     := TEvent.create;
-  HTTPini   := TConfigs.Create('HTTP.ini');
+  MyDir         := GetCurrentDir;
+//  Localization  := TDictionary<string,string>.Create();
+  //Localization  := TDictionary<string, TLangPage>.create;
+  Localization1 := TDictionary<string, TDictionary<string, Tlist<TLangKeyAndValue>>>.Create();
+  LoadLocalization;
+  Event         := TEvent.create;
+  HTTPini       := TConfigs.Create('HTTP.ini');
 
   wwwpath := HTTPini.GetValue_OrSetDefoult('Server', 'path', GetCurrentDir+'\www\').AsString;
   enableSSL := HTTPini.GetValue_OrSetDefoult('SSL', 'Secure', 'False').AsBoolean;
