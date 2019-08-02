@@ -382,11 +382,11 @@ begin
     begin
       query.RecNo := i;
       Result  := Result +  #13+ '<tr>'+#13;
-      Result  := Result + '  <td><a href="/jobs.html?number=' + query.FieldByName('ID').AsString+'">'+query.FieldByName('ID').AsString+'</a></td>'
+      Result  := Result + '  <td><a href="/agent.html?number=' + query.FieldByName('ID').AsString+'">'+query.FieldByName('NAME').AsString+'</a>'
                       //  + '<td>' + query.FieldByName('ID').AsString + '</td>'
-                        + '<td>' + query.FieldByName('NAME').AsString + '</td>'
-                        + '<td>' + query.FieldByName('TAGS').AsString + '</td>'
-                        + '<td>' + query.FieldByName('STATUS').AsString + '</td>'
+                      //  + '<td>' + query.FieldByName('NAME').AsString + '</td>'
+                        + '<p class="tag">' + query.FieldByName('TAGS').AsString + '</p></td>'
+                     //   + '<td>' + query.FieldByName('STATUS').AsString + '</td>'
 //                        + '<td>' + query.FieldByName('TAGS').AsString + '</td>'
       ;
       Result := Result + #13+'</tr>'+#10#13;
