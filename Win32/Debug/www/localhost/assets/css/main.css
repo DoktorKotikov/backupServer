@@ -328,4 +328,20 @@ table td {
 .tags .tag-item:last-child {
   margin-right: 0;
 }
+
+.status-icon {
+  border-radius: 50%;
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+  display: inline-block;
+}
+
+.status-icon-offline {
+	background-color: #ff0000;
+}
+
+.status-icon-online {
+	background-color: #00ff00;
+}
 /*# sourceMappingURL=main.css.map */

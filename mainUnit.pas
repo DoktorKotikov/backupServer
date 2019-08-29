@@ -217,6 +217,7 @@ begin
 //  ini.GetValue_OrSetDefoult('global', 'dbfileName', 'jobs').AsString,
 
   MySQLUnit.CreateTables;
+  MySQL_Agent_SetOfflineALL();
 
   secretKey := ini.GetValue('socket', 'key').AsString;
 
@@ -283,6 +284,8 @@ begin
         js :=  TJSONObject.Create;
         js.AddPair('action', 'login');
         js.AddPair('result', TJSONNumber.Create(0));
+
+        MySQL_Agent_SetOnline(SocketConf.agent_Id, true);
 
         AContext.Connection.Socket.WriteLn(js.ToJSON);
         js.Free;

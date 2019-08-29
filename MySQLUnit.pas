@@ -5,6 +5,9 @@ interface
 uses System.SysUtils, varsUnit, FireDAC, System.Generics.Collections, Data.DB, System.StrUtils, System.Hash;
 
 procedure CreateTables() ;
+
+function MySQL_Agent_SetOfflineALL(): Integer;
+function MySQL_Agent_SetOnline(AgentID : integer; Online : boolean): Integer;
 function MySQL_CheckLogin(key, ip, name : string; out ID: integer): Integer;
 function MySQL_CreateNextJob(JobId : Integer; NextDate : TDateTime): Integer;
 function MySQL_GetNewJob(): Integer;
@@ -38,41 +41,77 @@ procedure CreateTables() ;
 var
   query : TSQL;
 begin
-  query := SQL.Create_SQL;
-  query.SQL.Text := 'CREATE TABLE IF NOT EXISTS `jobs` (';
-  query.SQL.Add('`jobID` INT NOT NULL,');
-  query.SQL.Add('  `Tags` VARCHAR(128) NULL,');
-  query.SQL.Add('  `DirIN` VARCHAR(256) NULL,');
-  query.SQL.Add('  `DirOUT` VARCHAR(256) NULL,');
-  query.SQL.Add('  `Pattern` VARCHAR(64) NULL,');
-  query.SQL.Add('  `Crone` VARCHAR(18) NULL,');
-  query.SQL.Add('  `active` TINYINT NULL,');
-  query.SQL.Add('  PRIMARY KEY (`jobID`))');
-  query.SQL.Add('ENGINE = InnoDB');
+  query := nil;
+  try
+    query := SQL.Create_SQL;
+    query.SQL.Text := 'CREATE TABLE IF NOT EXISTS `jobs` (';
+    query.SQL.Add('`jobID` INT NOT NULL,');
+    query.SQL.Add('  `Tags` VARCHAR(128) NULL,');
+    query.SQL.Add('  `DirIN` VARCHAR(256) NULL,');
+    query.SQL.Add('  `DirOUT` VARCHAR(256) NULL,');
+    query.SQL.Add('  `Pattern` VARCHAR(64) NULL,');
+    query.SQL.Add('  `Crone` VARCHAR(18) NULL,');
+    query.SQL.Add('  `active` TINYINT NULL,');
+    query.SQL.Add('  PRIMARY KEY (`jobID`))');
+    query.SQL.Add('ENGINE = InnoDB');
 
-  query.ExecSQL;
+    query.ExecSQL;
 
-  query.SQL.Text := 'CREATE TABLE IF NOT EXISTS `agents` (';
-  query.SQL.Add('`ID` INT NOT NULL,');
-  query.SQL.Add('`NAME` VARCHAR(128) NULL,');
-  query.SQL.Add('`TAGS` VARCHAR(256) NULL,');
-  query.SQL.Add('`AUTH_TYPE` INT NULL,');
-  query.SQL.Add('`IP` VARCHAR(16) NULL,');
-  query.SQL.Add('`KEY` VARCHAR(64) NULL,');
-  query.SQL.Add('`STATUS` INT NULL,');
-  query.SQL.Add('PRIMARY KEY (`ID`))');
-  query.ExecSQL;
+    query.SQL.Text := 'CREATE TABLE IF NOT EXISTS `agents` (';
+    query.SQL.Add('`ID` INT NOT NULL,');
+    query.SQL.Add('`NAME` VARCHAR(128) NULL,');
+    query.SQL.Add('`TAGS` VARCHAR(256) NULL,');
+    query.SQL.Add('`AUTH_TYPE` INT NULL,');
+    query.SQL.Add('`IP` VARCHAR(16) NULL,');
+    query.SQL.Add('`KEY` VARCHAR(64) NULL,');
+    query.SQL.Add('`STATUS` INT NULL,');
+    query.SQL.Add('PRIMARY KEY (`ID`))');
+    query.ExecSQL;
 
-  query.SQL.Text := 'CREATE TABLE IF NOT EXISTS `keys` (';
-  query.SQL.Add('  `key` varchar(64) NOT NULL,');
-  query.SQL.Add('  `tags` varchar(128) DEFAULT NULL, ');
-  query.SQL.Add('  `status` int(11) DEFAULT NULL,');
-  query.SQL.Add('  PRIMARY KEY (`key`)');
-  query.SQL.Add(') ENGINE=InnoDB');
-  query.ExecSQL;
+    query.SQL.Text := 'CREATE TABLE IF NOT EXISTS `keys` (';
+    query.SQL.Add('  `key` varchar(64) NOT NULL,');
+    query.SQL.Add('  `tags` varchar(128) DEFAULT NULL, ');
+    query.SQL.Add('  `status` int(11) DEFAULT NULL,');
+    query.SQL.Add('  PRIMARY KEY (`key`)');
+    query.SQL.Add(') ENGINE=InnoDB');
+    query.ExecSQL;
 
 
-  query.Free;
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
+
+function MySQL_Agent_SetOfflineALL(): Integer;
+var
+  query : TSQL;
+begin
+  query := nil;
+  try
+    query := SQL.Create_SQL;
+    query.ExecSQL('UPDATE `agents` SET `ONLINE` = false');
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
+
+function MySQL_Agent_SetOnline(AgentID : integer; Online : boolean): Integer;
+var
+  query : TSQL;
+begin
+  query := nil;
+  try
+    query := SQL.Create_SQL;
+    if Online
+      then query.SQL.Text := 'UPDATE `agents` SET `ONLINE` = true   WHERE `ID` =  ' + AgentID.ToString
+      else query.SQL.Text := 'UPDATE `agents` SET `ONLINE` = false  WHERE `ID` =  ' + AgentID.ToString;
+
+    query.ExecSQL;
+
+  finally
+    if query <> nil then query.Free;
+  end;
+
 end;
 
 function MySQL_CheckLogin(key, ip, name : string; out ID: integer): Integer;
@@ -103,10 +142,10 @@ begin
       query.SQL.Add('(`NAME`,`TAGS`,`AUTH_TYPE`,`IP`,`KEY`) VALUES');
       query.SQL.Add('("'+ name + '", "' + TAGS + '", ' + AUTH_TYPE_AUTH_Bykey.ToString + ', "' +ip+'","' + KEY +'")');
       query.SQL.Add('ON DUPLICATE KEY UPDATE `IP` = "' +ip+'"');
-      log.SaveLog(query.SQL.Text);
+    //  log.SaveLog(query.SQL.Text);
       query.ExecSQL;
      // query.Free;
-      log.SaveLog(query.SQL.Text);
+     // log.SaveLog(query.SQL.Text);
                                                       // `STATUS` = 0 AND
       query.SQL.Text := 'SELECT * FROM `agents` WHERE  `AUTH_TYPE` = '+ AUTH_TYPE_AUTH_Bykey.ToString  +' AND `name` = "'+name+'"';
       log.SaveLog(query.SQL.Text);
@@ -371,14 +410,22 @@ begin
     for I := 1 to query.RecordCount do
     begin
       query.RecNo := i;
-      Result  := Result +  #13+ '<tr>'+#13;
-      Result  := Result + '  <td><a href="/agent.html?number=' + query.FieldByName('ID').AsString+'">'+query.FieldByName('NAME').AsString+'</a>'
-                      //  + '<td>' + query.FieldByName('ID').AsString + '</td>'
+      Result  := Result +  #13+ '<tr>'+#13 + '<td>';
+
+      if query.FieldByName('ONLINE').AsInteger <> 0
+        then Result  := Result + '<span class="status-icon status-icon-online"></span>'
+        else Result  := Result + '<span class="status-icon status-icon-offline"></span>';
+
+
+      Result  := Result + ' <a href="/agent.html?number=' + query.FieldByName('ID').AsString+'">'+query.FieldByName('NAME').AsString+'</a>'
                       //  + '<td>' + query.FieldByName('NAME').AsString + '</td>'
                         + '<p class="tag">' + query.FieldByName('TAGS').AsString + '</p></td>'
                      //   + '<td>' + query.FieldByName('STATUS').AsString + '</td>'
 //                        + '<td>' + query.FieldByName('TAGS').AsString + '</td>'
       ;
+
+
+
       Result := Result + #13+'</tr>'+#10#13;
     end;
 
