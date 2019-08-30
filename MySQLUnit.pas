@@ -8,7 +8,7 @@ procedure CreateTables() ;
 
 function MySQL_Agent_SetOfflineALL(): Integer;
 function MySQL_Agent_SetOnline(AgentID : integer; Online : boolean): Integer;
-function MySQL_GetJob_HTML(jobID : integer; out tags : string; out name : string): integer;
+function MySQL_GetJob_HTML(jobID : integer; out tags : string; out name : string; out crone : string; out rules : string; out active : integer): integer;
 function MySQL_GetAgentTags(agentId : integer): string;
 function MySQL_GetTagsListHTML() : string;
 function MySQL_CheckLogin(key, ip, name : string; out ID: integer): Integer;
@@ -120,7 +120,7 @@ begin
 end;
 
 
-function MySQL_GetJob_HTML(jobID : integer; out tags : string; out name : string): integer;
+function MySQL_GetJob_HTML(jobID : integer; out tags : string; out name : string; out crone : string; out rules : string; out active : integer): integer;
 var
   query   : TSQL;
 begin
@@ -134,8 +134,12 @@ begin
     if query.RecordCount = 1 then
     begin
       query.RecNo    := 1;
-      tags := tags +  '<span class="tag-item">'+query.FieldByName('TAGS').AsString+'</span>' + #13;
-      name := query.FieldByName('JobName').AsString;
+      tags    := tags +  '<span class="tag-item">'+query.FieldByName('TAGS').AsString+'</span>' + #13;
+      name    := query.FieldByName('name').AsString;
+      crone   := query.FieldByName('crone').AsString;
+      rules   := query.FieldByName('rules').AsString;
+      active  := query.FieldByName('active').AsInteger;
+
     end;
   finally
     if query <> nil then query.Free;

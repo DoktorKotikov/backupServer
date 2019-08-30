@@ -134,6 +134,9 @@ var
   tempInt : Integer;
   jobName : string;
   JobTags : string;
+  crone   : string;
+  rules   : string;
+  active  : integer;
 begin
 
   list     := TStringList.Create;
@@ -151,9 +154,16 @@ begin
   begin
     if TryStrToInt(Params.Values['number'], tempInt) = true then
     begin
-      MySQL_GetJob_HTML(tempInt, JobTags, jobName);
+      MySQL_GetJob_HTML(tempInt, JobTags, jobName, crone, rules, active);
       Result := StringReplace(Result, '[Job_tagsList]', JobTags, [rfReplaceAll]);
       Result := StringReplace(Result, '[Job_Name]', jobName, [rfReplaceAll]);
+
+      Result := StringReplace(Result, '[Job_Name]', crone, [rfReplaceAll]);
+      Result := StringReplace(Result, '[Job_Name]', rules, [rfReplaceAll]);
+      if active = 0
+        then Result := StringReplace(Result, '[Job_Name]', jobName, [rfReplaceAll])
+        else Result := StringReplace(Result, '[Job_Name]', jobName, [rfReplaceAll]);
+
     end;
   end;
 
