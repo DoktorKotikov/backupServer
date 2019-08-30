@@ -8,6 +8,9 @@ procedure CreateTables() ;
 
 function MySQL_Agent_SetOfflineALL(): Integer;
 function MySQL_Agent_SetOnline(AgentID : integer; Online : boolean): Integer;
+function MySQL_GetJob_HTML(jobID : integer; out tags : string; out name : string): integer;
+function MySQL_GetAgentTags(agentId : integer): string;
+function MySQL_GetTagsListHTML() : string;
 function MySQL_CheckLogin(key, ip, name : string; out ID: integer): Integer;
 function MySQL_CreateNextJob(JobId : Integer; NextDate : TDateTime): Integer;
 function MySQL_GetNewJob(): Integer;
@@ -19,6 +22,8 @@ function MySQL_ADDHTTPSession(Login, RemoteIP, UserAgent : string): string;
 function Mysql_GetANDCheckHTTPSession(AuthToken, RemoteIP, UserAgent : string): Boolean;
 
 function MySQL_Agents_GetAllAgents_HTML(): string;
+
+
 
 
 implementation
@@ -113,6 +118,76 @@ begin
   end;
 
 end;
+
+
+function MySQL_GetJob_HTML(jobID : integer; out tags : string; out name : string): integer;
+var
+  query   : TSQL;
+begin
+  query := nil;
+  try
+    tags := #13;
+    query := SQL.Create_SQL;
+
+    query.SQL.Text := 'SELECT * FROM `jobs` where `jobID` = ' + jobID.ToString;
+    query.Active := true;
+    if query.RecordCount = 1 then
+    begin
+      query.RecNo    := 1;
+      tags := tags +  '<span class="tag-item">'+query.FieldByName('TAGS').AsString+'</span>' + #13;
+      name := query.FieldByName('JobName').AsString;
+    end;
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
+
+
+function MySQL_GetAgentTags(agentId : integer): string;
+var
+  query   : TSQL;
+begin
+  query := nil;
+  try
+    Result := #13;
+    query := SQL.Create_SQL;
+
+    query.SQL.Text := 'SELECT * FROM `agents` where `ID` = ' + agentId.ToString;
+    query.Active := true;
+    if query.RecordCount = 1 then
+    begin
+      query.RecNo    := 1;
+      Result := Result +  '<span class="tag-item">'+query.FieldByName('TAGS').AsString+'</span>' + #13;
+    end;
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
+
+function MySQL_GetTagsListHTML() : string;
+var
+  query   : TSQL;
+  i       : integer;
+begin
+  query := nil;
+  try
+    Result := #13;
+    query := SQL.Create_SQL;
+    query.SQL.Text := 'SELECT `tagname` FROM tags';
+    query.Active := true;
+    for I := 1 to query.RecordCount do
+    begin
+      query.RecNo    := i;
+      Result := Result +  '<option value="'+i.ToString+'">'+query.FieldByName('tagname').AsString+'</option>' + #13;
+    end;
+
+
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
+
+
 
 function MySQL_CheckLogin(key, ip, name : string; out ID: integer): Integer;
 var

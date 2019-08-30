@@ -128,9 +128,12 @@ begin
 end;
 
 
-function refreshIndex(filename : string): string;
+function refreshIndex(filename : string; Params : TStrings): string;
 var
   list    : TStringList;
+  tempInt : Integer;
+  jobName : string;
+  JobTags : string;
 begin
 
   list     := TStringList.Create;
@@ -143,10 +146,17 @@ begin
 
   Result := StringReplace(Result, '[BackupServer_TASCkList]', jobsThread.getAllJobs_HTML, [rfReplaceAll]);
   Result := StringReplace(Result, '[socketConfTable_Active]', MySQL_Agents_GetAllAgents_HTML, [rfReplaceAll]);
+  Result := StringReplace(Result, '[All_tagsList]', MySQL_GetTagsListHTML, [rfReplaceAll]);
+  if Params.IndexOf('number') <> 0 then
+  begin
+    if TryStrToInt(Params.Values['number'], tempInt) = true then
+    begin
+      MySQL_GetJob_HTML(tempInt, JobTags, jobName);
+      Result := StringReplace(Result, '[Job_tagsList]', JobTags, [rfReplaceAll]);
+      Result := StringReplace(Result, '[Job_Name]', jobName, [rfReplaceAll]);
+    end;
+  end;
 
-  //  result := StringReplace(result, 'FSDWEF#$WR#W_TASCk', '77777#####', [rfReplaceAll]);
-//  result := StringReplace(result, 'FSDWEF#$WR#W_TASCk', '77777#####', [rfReplaceAll]);
-//  result := StringReplace(result, 'FSDWEF#$WR#W_TASCk', '77777#####', [rfReplaceAll]);
 end;
 
 
@@ -184,7 +194,7 @@ begin
     if  authClient(ARequestInfo, AResponseInfo, RequestPage, Host) then
     begin
       filename := wwwpath + Host +RequestPage;
-      AResponseInfo.ContentText := refreshIndex(filename);
+      AResponseInfo.ContentText := refreshIndex(filename, ARequestInfo.Params);
       AResponseInfo.ContentType := GenContType(RequestPage);
 
   //    AResponseInfo.ContentStream := TFileStream.Create(filename, fmShareDenyNone);
