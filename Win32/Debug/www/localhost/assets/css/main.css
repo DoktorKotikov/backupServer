@@ -331,17 +331,17 @@ table td {
 
 .status-icon {
   border-radius: 50%;
-  width: 6px;
-  height: 6px;
-  margin-right: 4px;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
   display: inline-block;
 }
 
-.status-icon-offline {
-	background-color: #ff0000;
+.status-icon.status-icon-offline {
+  background-color: #dc3545;
 }
 
-.status-icon-online {
-	background-color: #00ff00;
+.status-icon.status-icon-online {
+  background-color: #10b759;
 }
 /*# sourceMappingURL=main.css.map */
