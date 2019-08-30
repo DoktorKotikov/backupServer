@@ -219,7 +219,7 @@ begin
   MySQLUnit.CreateTables;
   MySQL_Agent_SetOfflineALL();
 
-  secretKey := ini.GetValue('socket', 'key').AsString;
+  secretKey := ini.GetValue_OrSetDefoult('socket', 'key','').AsString;
 
   allSockets := TSocketsAll.Create;//создаем allSockets из socketUnit
   IdTCPServer1.DefaultPort := ini.GetValue_OrSetDefoult('socket', 'port', '80').AsInteger;

@@ -158,11 +158,12 @@ begin
       Result := StringReplace(Result, '[Job_tagsList]', JobTags, [rfReplaceAll]);
       Result := StringReplace(Result, '[Job_Name]', jobName, [rfReplaceAll]);
 
-      Result := StringReplace(Result, '[Job_Name]', crone, [rfReplaceAll]);
-      Result := StringReplace(Result, '[Job_Name]', rules, [rfReplaceAll]);
+      Result := StringReplace(Result, '[Crone]', crone, [rfReplaceAll]);
+      Result := StringReplace(Result, '[Rules]', rules, [rfReplaceAll]);
       if active = 0
-        then Result := StringReplace(Result, '[Job_Name]', jobName, [rfReplaceAll])
-        else Result := StringReplace(Result, '[Job_Name]', jobName, [rfReplaceAll]);
+      then Result := StringReplace(Result, '[Job_Name]', jobName, [rfReplaceAll])
+      else Result := StringReplace(Result, '[Job_Name]', jobName, [rfReplaceAll]);
+
 
     end;
   end;

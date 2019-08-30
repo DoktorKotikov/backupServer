@@ -135,7 +135,7 @@ begin
     begin
       query.RecNo    := 1;
       tags    := tags +  '<span class="tag-item">'+query.FieldByName('TAGS').AsString+'</span>' + #13;
-      name    := query.FieldByName('name').AsString;
+      name    := query.FieldByName('JobName').AsString;
       crone   := query.FieldByName('crone').AsString;
       rules   := query.FieldByName('rules').AsString;
       active  := query.FieldByName('active').AsInteger;
