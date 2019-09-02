@@ -151,9 +151,9 @@ begin
   Result := StringReplace(Result, '[BackupServer_TASCkList]',  jobsThread.getAllJobs_HTML, [rfReplaceAll]);
   Result := StringReplace(Result, '[socketConfTable_Active]',  MySQL_Agents_GetAllAgents_HTML, [rfReplaceAll]);
   Result := StringReplace(Result, '[All_tagsList]', MySQL_GetTagsListHTML, [rfReplaceAll]);
-  if Params.IndexOf('number') <> 0 then
+  if Params.IndexOf('jobnumber') <> 0 then
   begin
-    if TryStrToInt(Params.Values['number'], tempInt) = true then
+    if TryStrToInt(Params.Values['jobnumber'], tempInt) = true then
     begin
       MySQL_GetJob_HTML(tempInt, JobTags, jobName, crone, rules, active);
       Result := StringReplace(Result, '[Job_tagsList]',  JobTags, [rfReplaceAll]);
