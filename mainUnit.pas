@@ -171,6 +171,7 @@ var
 begin
   log := TLogsSaveClasses.Create();
   MyDir         := GetCurrentDir;
+  CreateMIMEtypesTabel;
 //  Localization  := TDictionary<string,string>.Create();
   //Localization  := TDictionary<string, TLangPage>.create;
   Localization1 := TDictionary<string, TDictionary<string, Tlist<TLangKeyAndValue>>>.Create();
