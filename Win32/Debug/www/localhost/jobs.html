@@ -46,6 +46,7 @@
                 <div class="content">
                     <div class="w-100">
                         <form id="jobs-form" class="form-bg relative" action="" method="POST">
+                            <input type="hidden" name="action" value="Job save">
                             <h1 class="block-heading">Jobs</h1>
                             <div class="tags">
                                 <span class="tag-items-title">Метки:</span>
@@ -130,14 +131,15 @@
         $(document).ready(() => {
             let form = $("form");
             $("#test").click(function (event) {
-                // console.log(getFormData(form));
+                //console.log(getFormData(form));
                 $.ajax({
                     method: "POST",
-                    data: getFormData(form)
+                    data: JSON.stringify(getFormData(form))
                 })
                     .done(function (msg) {
                         alert("Все круто!");
                     });
+
             });
         });
     </script>
