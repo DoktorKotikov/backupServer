@@ -1,8 +1,8 @@
-unit HtmlUnit;
+﻿unit HtmlUnit;
 
 interface
 
-uses System.Classes, System.sysutils, System.RegularExpressions, System.Generics.Collections,
+uses System.Classes, System.sysutils, System.RegularExpressions, System.Generics.Collections, IdUri, Web.HTTPApp,
     varsUnit, IdCustomHTTPServer, jobsThreadUnit, MySQLUnit, IdCookie, myconfig.Logs, IdSSL, SocketUnit; //, serfHTTPUnit
 
 function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
@@ -138,6 +138,7 @@ var
   rules   : string;
   active  : integer;
 begin
+ // crone := TIdUri.URLEncode('lê');
 
   list     := TStringList.Create;
   try
@@ -147,22 +148,22 @@ begin
     list.Free;
   end;
 
-  Result := StringReplace(Result, '[BackupServer_TASCkList]', jobsThread.getAllJobs_HTML, [rfReplaceAll]);
-  Result := StringReplace(Result, '[socketConfTable_Active]', MySQL_Agents_GetAllAgents_HTML, [rfReplaceAll]);
+  Result := StringReplace(Result, '[BackupServer_TASCkList]',  jobsThread.getAllJobs_HTML, [rfReplaceAll]);
+  Result := StringReplace(Result, '[socketConfTable_Active]',  MySQL_Agents_GetAllAgents_HTML, [rfReplaceAll]);
   Result := StringReplace(Result, '[All_tagsList]', MySQL_GetTagsListHTML, [rfReplaceAll]);
   if Params.IndexOf('number') <> 0 then
   begin
     if TryStrToInt(Params.Values['number'], tempInt) = true then
     begin
       MySQL_GetJob_HTML(tempInt, JobTags, jobName, crone, rules, active);
-      Result := StringReplace(Result, '[Job_tagsList]', JobTags, [rfReplaceAll]);
-      Result := StringReplace(Result, '[Job_Name]', jobName, [rfReplaceAll]);
+      Result := StringReplace(Result, '[Job_tagsList]',  JobTags, [rfReplaceAll]);
+      Result := StringReplace(Result, '[Job_Name]',  jobName, [rfReplaceAll]);
 
-      Result := StringReplace(Result, '[Crone]', crone, [rfReplaceAll]);
-      Result := StringReplace(Result, '[Rules]', rules, [rfReplaceAll]);
+      Result := StringReplace(Result, '[jobe_Crone]',  crone, [rfReplaceAll]);
+      Result := StringReplace(Result, '[jobe_Rules]',  rules, [rfReplaceAll]);
       if active = 0
-      then Result := StringReplace(Result, '[Job_Name]', jobName, [rfReplaceAll])
-      else Result := StringReplace(Result, '[Job_Name]', jobName, [rfReplaceAll]);
+      then Result := StringReplace(Result, '[jobe_Active]', 'checked', [rfReplaceAll])
+      else Result := StringReplace(Result, '[jobe_Active]', '', [rfReplaceAll]);
 
 
     end;

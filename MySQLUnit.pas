@@ -2,7 +2,7 @@ unit MySQLUnit;
 
 interface
 
-uses System.SysUtils, varsUnit, FireDAC, System.Generics.Collections, Data.DB, System.StrUtils, System.Hash;
+uses System.SysUtils, varsUnit, FireDAC, System.Generics.Collections, Data.DB, System.StrUtils, System.Hash, Web.HTTPApp;
 
 procedure CreateTables() ;
 
@@ -134,10 +134,10 @@ begin
     if query.RecordCount = 1 then
     begin
       query.RecNo    := 1;
-      tags    := tags +  '<span class="tag-item">'+query.FieldByName('TAGS').AsString+'</span>' + #13;
-      name    := query.FieldByName('JobName').AsString;
-      crone   := query.FieldByName('crone').AsString;
-      rules   := query.FieldByName('rules').AsString;
+      tags    := tags +  '<span class="tag-item">'+Web.HTTPApp.HTMLEncode(query.FieldByName('TAGS').AsString)+'</span>' + #13;
+      name    := Web.HTTPApp.HTMLEncode(query.FieldByName('JobName').AsString);
+      crone   := Web.HTTPApp.HTMLEncode(query.FieldByName('crone').AsString);
+      rules   := Web.HTTPApp.HTMLEncode(query.FieldByName('rules').AsString);
       active  := query.FieldByName('active').AsInteger;
 
     end;
@@ -182,7 +182,7 @@ begin
     for I := 1 to query.RecordCount do
     begin
       query.RecNo    := i;
-      Result := Result +  '<option value="'+i.ToString+'">'+query.FieldByName('tagname').AsString+'</option>' + #13;
+      Result := Result +  '<option value="'+i.ToString+'">'+Web.HTTPApp.HTMLEncode(query.FieldByName('tagname').AsString)+'</option>' + #13;
     end;
 
 
@@ -496,9 +496,9 @@ begin
         else Result  := Result + '<span class="status-icon status-icon-offline"></span>';
 
 
-      Result  := Result + ' <a href="/agent.html?number=' + query.FieldByName('ID').AsString+'">'+query.FieldByName('NAME').AsString+'</a>'
+      Result  := Result + ' <a href="/agent.html?number=' + Web.HTTPApp.HTMLEncode(query.FieldByName('ID').AsString)+'">'+Web.HTTPApp.HTMLEncode(query.FieldByName('NAME').AsString)+'</a>'
                       //  + '<td>' + query.FieldByName('NAME').AsString + '</td>'
-                        + '<p class="tag">' + query.FieldByName('TAGS').AsString + '</p></td>'
+                        + '<p class="tag">' + Web.HTTPApp.HTMLEncode(query.FieldByName('TAGS').AsString) + '</p></td>'
                      //   + '<td>' + query.FieldByName('STATUS').AsString + '</td>'
 //                        + '<td>' + query.FieldByName('TAGS').AsString + '</td>'
       ;
