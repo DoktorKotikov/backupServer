@@ -2,14 +2,17 @@ unit MySQLUnit;
 
 interface
 
-uses System.SysUtils, varsUnit, FireDAC, System.Generics.Collections, Data.DB, System.StrUtils, System.Hash, Web.HTTPApp;
+uses System.JSON, System.SysUtils, varsUnit, FireDAC, System.Generics.Collections, Data.DB, System.StrUtils, System.Hash, Web.HTTPApp;
 
 procedure CreateTables() ;
+
+function MySQL_JobSave(js : TJSONObject): Integer;
 
 function MySQL_Agent_SetOfflineALL(): Integer;
 function MySQL_Agent_SetOnline(AgentID : integer; Online : boolean): Integer;
 function MySQL_GetJob_HTML(jobID : integer; out tags : string; out name : string; out crone : string; out rules : string; out active : integer): integer;
 function MySQL_GetAgentTags(agentId : integer): string;
+function MySQL_GetTagsListFromJob_HTML(JobID : integer) : string;
 function MySQL_GetTagsListHTML() : string;
 function MySQL_CheckLogin(key, ip, name : string; out ID: integer): Integer;
 function MySQL_CreateNextJob(JobId : Integer; NextDate : TDateTime): Integer;
@@ -30,6 +33,76 @@ implementation
 
 uses jobsThreadUnit;
 
+function MySQL_JobSave(js : TJSONObject): Integer;
+var
+  query   : TSQL;
+  JobID   : integer;
+  active  : Boolean;
+  I       : Integer;
+  tags_JS : TJSONArray;
+begin
+  query := nil;
+  try
+    if TryStrToInt(js.GetValue('jobID').Value, JobID) = true then
+    begin
+    {  query := SQL.Create_SQL;
+      query.SQL.Text  := 'SELECT 1 FROM `jobs` WHERE `jobID` = ' + JobID.ToString;
+      query.Active;
+      if query.RecordCount = 1 then
+      begin
+
+      end else }
+      begin
+        try
+          query.Transaction.StartTransaction;
+
+          query.SQL.Text  := 'INSERT INTO `jobs` (`jobID`, `JobName`, `rules`, `Crone`, `active`) VALUES ';
+          query.SQL.Add('(:jobID, :JobName, :Tags, :rules, :Crone, :active)');
+          query.SQL.Add('on duplicate key update');
+          query.SQL.Add('`JobName` = :JobName');
+          query.SQL.Add('`rules` = :rules');
+          query.SQL.Add('`Crone` = :Crone');
+          query.SQL.Add('`active` = :active');
+
+          query.Params.CreateParam(ftInteger, 'jobID',    ptInput);
+          query.Params.CreateParam(ftString,  'JobName',  ptInput);
+          query.Params.CreateParam(ftString,  'rules',    ptInput);
+          query.Params.CreateParam(ftString,  'Crone',    ptInput);
+          query.Params.CreateParam(ftInteger, 'active',   ptInput);
+
+          query.ParamByName('jobID').AsInteger    := JobID;
+          query.ParamByName('JobName').AsString   := js.GetValue('JobName').Value;
+          query.ParamByName('rules').AsString     := js.GetValue('rules').Value;
+          query.ParamByName('Crone').AsString     := js.GetValue('Crone').Value;
+          js.TryGetValue('active', active);
+          if active
+            then query.ParamByName('active').AsInteger   := 0
+            else query.ParamByName('active').AsInteger   := 1;
+
+          query.ExecSQL;
+
+          query.ExecSQL('DELETE FROM `backup`.`tags` WHERE `jobID` = ' + JobID.ToString);
+
+          query.SQL.Text  := 'INSERT INTO `jobs.tags` (`jobID`, `tagID`) VALUES';
+          js.TryGetValue('tags', tags_JS);
+          for I := 0 to tags_JS.Count-1 do
+          begin
+            query.SQL.Add('(' +JobID.ToString +',' + tags_JS.Items[i].Value +')');
+            if i <> tags_JS.Count then query.SQL.Add(',');
+          end;
+          query.ExecSQL;
+          query.Transaction.Commit;
+        except
+          query.Transaction.Rollback;
+        end;
+
+      end;
+
+    end;
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
 
 function CalcSessionKey(Login, UserAgent, sessionSalt : string): string;
 begin
@@ -168,6 +241,33 @@ begin
   end;
 end;
 
+
+function MySQL_GetTagsListFromJob_HTML(JobID : integer) : string;
+var
+  query     : TSQL;
+  i         : integer;
+  selected  : string;
+begin
+  query := nil;
+  try
+    Result := #13;
+    query := SQL.Create_SQL;
+    query.SQL.Text := 'SELECT `idTags`, `tagname`, ifnull(`jobID`, -1) as `active` FROM tags Left JOIN `jobs.tags` ON (`idTags` = tagID AND jobID = '+JobID.ToString +')';
+    query.Active := true;
+    for I := 1 to query.RecordCount do
+    begin
+      query.RecNo    := i;
+      if query.FieldByName('active').AsInteger <> -1 then selected := 'selected' else selected := '';
+      Result := Result +  '<option value="' + query.FieldByName('idTags').AsString +'"'+ selected +'>'+Web.HTTPApp.HTMLEncode(query.FieldByName('tagname').AsString)+'</option>' + #13;
+    end;
+
+
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
+
+
 function MySQL_GetTagsListHTML() : string;
 var
   query   : TSQL;
@@ -291,7 +391,7 @@ begin
 
   query.Free;
 end;
-
+               {
 function MySQL_ADDNewJobe (jobe : Tjobrec) : integer;
 var
   query   : TSQL;
@@ -320,7 +420,7 @@ begin
 
   query.Free;
 end;
-
+                     }
 function MySQL_GetNewJob(): Integer;
 var
   query   : TSQL;

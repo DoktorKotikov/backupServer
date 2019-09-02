@@ -2,7 +2,7 @@
 
 interface
 
-uses System.Classes, System.sysutils, System.RegularExpressions, System.Generics.Collections, IdUri, Web.HTTPApp,
+uses System.Classes, System.sysutils, System.RegularExpressions, System.Generics.Collections, IdUri, Web.HTTPApp, System.JSON,
     varsUnit, IdCustomHTTPServer, jobsThreadUnit, MySQLUnit, IdCookie, myconfig.Logs, IdSSL, SocketUnit; //, serfHTTPUnit
 
 function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
@@ -283,11 +283,13 @@ begin
 
   Result := StringReplace(Result, '[BackupServer_TASCkList]',  jobsThread.getAllJobs_HTML, [rfReplaceAll]);
   Result := StringReplace(Result, '[socketConfTable_Active]',  MySQL_Agents_GetAllAgents_HTML, [rfReplaceAll]);
-  Result := StringReplace(Result, '[All_tagsList]', MySQL_GetTagsListHTML, [rfReplaceAll]);
   if Params.IndexOf('jobnumber') <> 0 then
   begin
     if TryStrToInt(Params.Values['jobnumber'], tempInt) = true then
     begin
+
+      Result := StringReplace(Result, '[All_tagsList]', MySQL_GetTagsListFromJob_HTML(tempInt), [rfReplaceAll]);
+
       MySQL_GetJob_HTML(tempInt, JobTags, jobName, crone, rules, active);
       Result := StringReplace(Result, '[Job_tagsList]',  JobTags, [rfReplaceAll]);
       Result := StringReplace(Result, '[Job_Name]',  jobName, [rfReplaceAll]);
@@ -303,6 +305,26 @@ begin
   end;
 
 end;
+
+function PostJS(param : string): Integer;
+var
+  js      : TJSONObject;
+  action  : string;
+begin
+  try
+    js := TJSONObject.ParseJSONValue(param) as TJSONObject;//переопределяем js как распаршеное сообщение msg
+    if js.TryGetValue('action', action) then
+    begin
+      if action = 'job_save' then
+      begin
+        MySQL_JobSave(js); 
+      end;      
+    end;
+  except on E: Exception do
+  end;
+  
+end;
+
 
 
 function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
@@ -338,7 +360,10 @@ begin
   try
     if  authClient(ARequestInfo, AResponseInfo, RequestPage, Host) then
     begin
-      filename := wwwpath + Host +RequestPage;
+      PostJS(ARequestInfo.Params.Text);
+      
+
+      filename := wwwpath + Host + RequestPage;
       AResponseInfo.ContentText := refreshIndex(filename, ARequestInfo.Params);
       AResponseInfo.ContentType := GenContType(RequestPage);
 
