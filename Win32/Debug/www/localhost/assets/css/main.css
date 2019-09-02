@@ -96,14 +96,18 @@ main {
 
 input,
 button {
-  -webkit-user-select: none;
-     -moz-user-select: none;
-      -ms-user-select: none;
-          user-select: none;
   overflow: visible;
   outline: 0;
   border: 0;
   font-family: inherit;
+}
+
+input[type="button"],
+button {
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
 }
 
 a {
@@ -189,6 +193,8 @@ ul {
 
 .form-row label {
   width: 200px;
+  -ms-flex-negative: 0;
+      flex-shrink: 0;
   margin-right: 10px;
 }
 
