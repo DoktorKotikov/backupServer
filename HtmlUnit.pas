@@ -6,8 +6,125 @@ uses System.Classes, System.sysutils, System.RegularExpressions, System.Generics
     varsUnit, IdCustomHTTPServer, jobsThreadUnit, MySQLUnit, IdCookie, myconfig.Logs, IdSSL, SocketUnit; //, serfHTTPUnit
 
 function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
+procedure CreateMIMEtypesTabel();
 
 implementation
+
+var
+  MIMEtypesTabel  : TDictionary<string, string>;
+
+procedure CreateMIMEtypesTabel();
+begin
+  MIMEtypesTabel  := TDictionary<string, string>.create;
+  MIMEtypesTabel.Add( 'hqx', 'application/mac-binhex40');
+  MIMEtypesTabel.Add( 'doc', 'application/msword');
+  MIMEtypesTabel.Add( 'bin', 'application/octet-stream');
+  MIMEtypesTabel.Add( 'dms', 'application/octet-stream');
+  MIMEtypesTabel.Add( 'lha', 'application/octet-stream');
+  MIMEtypesTabel.Add( 'lzh', 'application/octet-stream');
+  MIMEtypesTabel.Add( 'exe', 'application/octet-stream');
+  MIMEtypesTabel.Add( 'class', 'application/octet-stream');
+  MIMEtypesTabel.Add( 'pdf', 'application/pdf');
+  MIMEtypesTabel.Add( 'ai', 'application/postscript');
+  MIMEtypesTabel.Add( 'eps', 'application/postscript');
+  MIMEtypesTabel.Add( 'ps', 'application/postscript');
+  MIMEtypesTabel.Add( 'smi', 'application/smil');
+  MIMEtypesTabel.Add( 'smil', 'application/smil');
+  MIMEtypesTabel.Add( 'mif', 'application/vnd.mif');
+  MIMEtypesTabel.Add( 'asf', 'application/vnd.ms-asf');
+  MIMEtypesTabel.Add( 'xls', 'application/vnd.ms-excel');
+  MIMEtypesTabel.Add( 'ppt', 'application/vnd.ms-powerpoint');
+  MIMEtypesTabel.Add( 'vcd', 'application/x-cdlink');
+  MIMEtypesTabel.Add( 'Z', 'application/x-compress');
+  MIMEtypesTabel.Add( 'cpio', 'application/x-cpio');
+  MIMEtypesTabel.Add( 'csh', 'application/x-csh');
+  MIMEtypesTabel.Add( 'dcr', 'application/x-director');
+  MIMEtypesTabel.Add( 'dir', 'application/x-director');
+  MIMEtypesTabel.Add( 'dxr', 'application/x-director');
+  MIMEtypesTabel.Add( 'dvi', 'application/x-dvi');
+  MIMEtypesTabel.Add( 'gtar', 'application/x-gtar');
+  MIMEtypesTabel.Add( 'gz', 'application/x-gzip');
+  MIMEtypesTabel.Add( 'js', 'application/x-javascript');
+  MIMEtypesTabel.Add( 'latex', 'application/x-latex');
+  MIMEtypesTabel.Add( 'sh', 'application/x-sh');
+  MIMEtypesTabel.Add( 'shar', 'application/x-shar');
+  MIMEtypesTabel.Add( 'swf', 'application/x-shockwave-flash');
+  MIMEtypesTabel.Add( 'sit', 'application/x-stuffit');
+  MIMEtypesTabel.Add( 'tar', 'application/x-tar');
+  MIMEtypesTabel.Add( 'tcl', 'application/x-tcl');
+  MIMEtypesTabel.Add( 'tex', 'application/x-tex');
+  MIMEtypesTabel.Add( 'texinfo', 'application/x-texinfo');
+  MIMEtypesTabel.Add( 'texi', 'application/x-texinfo');
+  MIMEtypesTabel.Add( 't', 'application/x-troff');
+  MIMEtypesTabel.Add( 'tr', 'application/x-troff');
+  MIMEtypesTabel.Add( 'roff', 'application/x-troff');
+  MIMEtypesTabel.Add( 'man', 'application/x-troff-man');
+  MIMEtypesTabel.Add( 'me', 'application/x-troff-me');
+  MIMEtypesTabel.Add( 'ms', 'application/x-troff-ms');
+  MIMEtypesTabel.Add( 'zip', 'application/zip');
+  MIMEtypesTabel.Add( 'wmlc', 'application/vnd.wap.wmlc');
+  MIMEtypesTabel.Add( 'au', 'audio/basic');
+  MIMEtypesTabel.Add( 'snd', 'audio/basic');
+  MIMEtypesTabel.Add( 'mid', 'audio/midi');
+  MIMEtypesTabel.Add( 'midi', 'audio/midi');
+  MIMEtypesTabel.Add( 'kar', 'audio/midi');
+  MIMEtypesTabel.Add( 'mpga', 'audio/mpeg');
+  MIMEtypesTabel.Add( 'mp2', 'audio/mpeg');
+  MIMEtypesTabel.Add( 'mp3', 'audio/mpeg');
+  MIMEtypesTabel.Add( 'aif', 'audio/x-aiff');
+  MIMEtypesTabel.Add( 'aiff', 'audio/x-aiff');
+  MIMEtypesTabel.Add( 'aifc', 'audio/x-aiff');
+  MIMEtypesTabel.Add( 'ram', 'audio/x-pn-realaudio');
+  MIMEtypesTabel.Add( 'rm', 'audio/x-pn-realaudio');
+  MIMEtypesTabel.Add( 'ra', 'audio/x-realaudio');
+  MIMEtypesTabel.Add( 'wav', 'audio/x-wav');
+  MIMEtypesTabel.Add( 'bmp', 'image/bmp');
+  MIMEtypesTabel.Add( 'gif', 'image/gif');
+  MIMEtypesTabel.Add( 'ief', 'image/ief');
+  MIMEtypesTabel.Add( 'jpeg', 'image/jpeg');
+  MIMEtypesTabel.Add( 'jpg', 'image/jpeg');
+  MIMEtypesTabel.Add( 'jpe', 'image/jpeg');
+  MIMEtypesTabel.Add( 'png', 'image/png');
+  MIMEtypesTabel.Add( 'tiff', 'image/tiff');
+  MIMEtypesTabel.Add( 'tif', 'image/tiff');
+  MIMEtypesTabel.Add( 'wbmp', 'image/vnd.wap.wbmp');
+  MIMEtypesTabel.Add( 'ras', 'image/x-cmu-raster');
+  MIMEtypesTabel.Add( 'pnm', 'image/x-portable-anymap');
+  MIMEtypesTabel.Add( 'pbm', 'image/x-portable-bitmap');
+  MIMEtypesTabel.Add( 'pgm', 'image/x-portable-graymap');
+  MIMEtypesTabel.Add( 'ppm', 'image/x-portable-pixmap');
+  MIMEtypesTabel.Add( 'rgb', 'image/x-rgb');
+  MIMEtypesTabel.Add( 'xbm', 'image/x-xbitmap');
+  MIMEtypesTabel.Add( 'xpm', 'image/x-xpixmap');
+  MIMEtypesTabel.Add( 'xwd', 'image/x-xwindowdump');
+  MIMEtypesTabel.Add( 'ico', 'image/x-icon');
+  MIMEtypesTabel.Add( 'igs', 'model/iges');
+  MIMEtypesTabel.Add( 'iges', 'model/iges');
+  MIMEtypesTabel.Add( 'msh', 'model/mesh');
+  MIMEtypesTabel.Add( 'mesh', 'model/mesh');
+  MIMEtypesTabel.Add( 'silo', 'model/mesh');
+  MIMEtypesTabel.Add( 'wrl', 'model/vrml');
+  MIMEtypesTabel.Add( 'vrml', 'model/vrml');
+  MIMEtypesTabel.Add( 'css', 'text/css');
+  MIMEtypesTabel.Add( 'html', 'text/html; charset=UTF-8');
+  MIMEtypesTabel.Add( 'htm', 'text/html; charset=UTF-8');
+  MIMEtypesTabel.Add( 'asc', 'text/plain');
+  MIMEtypesTabel.Add( 'txt', 'text/plain');
+  MIMEtypesTabel.Add( 'rtx', 'text/richtext');
+  MIMEtypesTabel.Add( 'rtf', 'text/rtf');
+  MIMEtypesTabel.Add( 'sgml', 'text/sgml');
+  MIMEtypesTabel.Add( 'sgm', 'text/sgml');
+  MIMEtypesTabel.Add( 'tsv', 'text/tab-separated-values');
+  MIMEtypesTabel.Add( 'xml', 'text/xml');
+  MIMEtypesTabel.Add( 'wml', 'text/vnd.wap.wml');
+  MIMEtypesTabel.Add( 'wmls', 'text/vnd.wap.wmlscript');
+  MIMEtypesTabel.Add( 'mpeg', 'video/mpeg');
+  MIMEtypesTabel.Add( 'mpg', 'video/mpeg');
+  MIMEtypesTabel.Add( 'mpe', 'video/mpeg');
+  MIMEtypesTabel.Add( 'qt', 'video/quicktime');
+  MIMEtypesTabel.Add( 'mov', 'video/quicktime');
+  MIMEtypesTabel.Add( 'avi', 'video/x-msvideo');
+end;
 
 
 function Localization_HTML(URL, html : string): string;
@@ -28,14 +145,30 @@ begin
 end;
 
 function GenContType(filename : string) : string;
+var
+  symbol        : Char;
+  LastPosition  : integer;
 begin
-  filename := filename.Substring(filename.IndexOf('.')+1, 10);
+  LastPosition := filename.Length;
+  repeat
+    symbol := filename[LastPosition];
+    Dec(LastPosition);
+  until (LastPosition = 0) OR (symbol = '.');
+
+  filename := filename.Substring(LastPosition+1, 10);
+  if MIMEtypesTabel.TryGetValue(filename, Result) = false then Result := 'application/octet-stream';
+  {
+
   if (filename = 'htm') or (filename = 'html') then Result := 'text/html; charset=UTF-8' else
   if filename = 'ico' then Result := 'image/xicon' else
   if filename = 'mp4' then Result := 'video/mp4' else
   if filename = 'css' then Result := 'text/css; charset=UTF-8' else
+  if filename = 'min.js' then
+  begin
+  Result := 'text/javascript; charset=UTF-8'
+  end;
 
-
+         }
 
 end;
 
