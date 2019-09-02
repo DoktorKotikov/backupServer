@@ -45,67 +45,73 @@
             <main class="grow-1">
                 <div class="content">
                     <div class="w-100">
-                        <form class="form-bg relative" action="" method="POST">
+                        <form id="jobs-form" class="form-bg relative" action="" method="POST">
                             <h1 class="block-heading">Jobs</h1>
                             <div class="tags">
                                 <span class="tag-items-title">Метки:</span>
-								[Job_tagsList]
+                                [Job_tagsList]
                             </div>
                             <div class="form-inputs">
                                 <div class="form-row">
                                     <label for="job-name">Job name</label>
-                                    <input type="text" id="job-name" class="form-control"
+                                    <input type="text" name="job-name" id="job-name" class="form-control"
                                         placeholder="введите что-нибудь" value="[Job_Name]">
-								</div>
-<!--[Job_Name]-->
-						
-                                
-								<div class="form-inputs">
-                                <div class="form-row">
-                                    <label for="cron">Cron</label>
-                                    <input type="text" id="cron" class="form-control"
-                                        placeholder="введите что-нибудь" value="[jobe_Cron]">
-                                </div>										
-<!--[Job_Name]-->
-						
-								<div class="form-inputs">
-                                <div class="form-row">
-                                    <label for="rules">Rules</label>
-                                    <input type="text" id="rules" class="form-control"
-                                        placeholder="введите что-нибудь" value="[jobe_Rules]">
                                 </div>
-										
-<!--[Job_Name]-->
-						
-								<div class="form-inputs">
-                                <div class="form-row">
-                                    <label for="active">Active</label>
-                                    <input type="checkbox" id="active" class="form-check-control"
-                                        [jobe_Active]>
-                                </div>
+                                <!--[Job_Name]-->
 
-<!--[Job_Name]-->
-								
-								
-                                <div class="form-row">
-                                    <label for="multiselect">Список</label>
-                                    <select id="multiselect" name="test" multiple autocomplete="off">
-                                        <option data-placeholder="true"></option>
-                                        [All_tagsList]
-                                    </select>
-                                </div>
-                            </div>
 
-                            <div class="form-row absolute left-bottom">
-                                <button type="submit" class="btn">Сохранить</button>
-                            </div>
+                                <div class="form-inputs">
+                                    <div class="form-row">
+                                        <label for="cron">Cron</label>
+                                        <input type="text" name="cron" id="cron" class="form-control"
+                                            placeholder="введите что-нибудь" value="[jobe_Cron]">
+                                    </div>
+                                    <!--[Job_Name]-->
+
+                                    <div class="form-inputs">
+                                        <div class="form-row">
+                                            <label for="rules">Rules</label>
+                                            <input type="text" name="rules" id="rules" class="form-control"
+                                                placeholder="введите что-нибудь" value="[jobe_Rules]">
+                                        </div>
+
+                                        <!--[Job_Name]-->
+
+                                        <div class="form-inputs">
+                                            <div class="form-row">
+                                                <label for="active">Active</label>
+                                                <input type="checkbox" name="is-active" id="active"
+                                                    class="form-check-control" [jobe_Active]>
+                                            </div>
+
+                                            <!--[Job_Name]-->
+
+
+                                            <div class="form-row">
+                                                <label for="multiselect">Список</label>
+                                                <select id="multiselect" name="list" multiple autocomplete="off">
+                                                    <option data-placeholder="true"></option>
+                                                    [All_tagsList]
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-row absolute left-bottom">
+                                            <button type="submit" class="btn">Сохранить</button>
+                                        </div>
                         </form>
                     </div>
                 </div>
             </main>
         </div>
     </div>
+<<<<<<< HEAD
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <script src="./assets/js/slimselect.min.js"></script>
+=======
 	<script src="./assets/js/slimselect.min.js"></script>	
+>>>>>>> 2da2129c3d0c54fb8be8c8bdfca069d0e7603eea
     <script>
         new SlimSelect({
             select: '#multiselect',
@@ -113,7 +119,38 @@
             showSearch: false,
             allowDeselect: true
         })
+<<<<<<< HEAD
+
+        function getFormData(input) {
+            var unindexed_array = input.serializeArray();
+            var indexed_array = {};
+
+            $.map(unindexed_array, function (n, i) {
+                indexed_array[n['name']] = n['value'];
+            });
+
+            return indexed_array;
+        }
+
+        $(document).ready(() => {
+            let form = $("form");
+            $("form").on("submit", function (event) {
+                event.preventDefault();
+                // console.log(getFormData(form));
+                $.ajax({
+                    method: "POST",
+                    data: getFormData(form)
+                })
+                    .done(function (msg) {
+                        alert("Все круто!");
+                    });
+            });
+        });
+    </script>
+
+=======
     </script>		
+>>>>>>> 2da2129c3d0c54fb8be8c8bdfca069d0e7603eea
 </body>
 
 </html>
