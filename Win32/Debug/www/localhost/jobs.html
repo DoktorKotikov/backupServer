@@ -97,7 +97,7 @@
                                         </div>
 
                                         <div class="form-row absolute left-bottom">
-                                            <button type="submit" class="btn">Сохранить</button>
+                                            <input type="button" id="test" value="Сохранить" class="btn">
                                         </div>
                         </form>
                     </div>
@@ -105,13 +105,9 @@
             </main>
         </div>
     </div>
-<<<<<<< HEAD
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"
         integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
-    <script src="./assets/js/slimselect.min.js"></script>
-=======
-	<script src="./assets/js/slimselect.min.js"></script>	
->>>>>>> 2da2129c3d0c54fb8be8c8bdfca069d0e7603eea
+    <script src="assets/js/slimselect.min.js"></script>
     <script>
         new SlimSelect({
             select: '#multiselect',
@@ -119,7 +115,6 @@
             showSearch: false,
             allowDeselect: true
         })
-<<<<<<< HEAD
 
         function getFormData(input) {
             var unindexed_array = input.serializeArray();
@@ -134,8 +129,7 @@
 
         $(document).ready(() => {
             let form = $("form");
-            $("form").on("submit", function (event) {
-                event.preventDefault();
+            $("#test").click(function (event) {
                 // console.log(getFormData(form));
                 $.ajax({
                     method: "POST",
@@ -148,9 +142,6 @@
         });
     </script>
 
-=======
-    </script>		
->>>>>>> 2da2129c3d0c54fb8be8c8bdfca069d0e7603eea
 </body>
 
 </html>
