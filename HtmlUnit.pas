@@ -159,7 +159,7 @@ begin
       Result := StringReplace(Result, '[Job_tagsList]',  JobTags, [rfReplaceAll]);
       Result := StringReplace(Result, '[Job_Name]',  jobName, [rfReplaceAll]);
 
-      Result := StringReplace(Result, '[jobe_Crone]',  crone, [rfReplaceAll]);
+      Result := StringReplace(Result, '[jobe_Cron]',  crone, [rfReplaceAll]);
       Result := StringReplace(Result, '[jobe_Rules]',  rules, [rfReplaceAll]);
       if active = 0
       then Result := StringReplace(Result, '[jobe_Active]', 'checked', [rfReplaceAll])
