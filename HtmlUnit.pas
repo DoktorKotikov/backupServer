@@ -3,7 +3,7 @@
 interface
 
 uses System.Classes, System.sysutils, System.RegularExpressions, System.Generics.Collections, IdUri, Web.HTTPApp, System.JSON,
-    varsUnit, IdCustomHTTPServer, jobsThreadUnit, MySQLUnit, IdCookie, myconfig.Logs, IdSSL, SocketUnit; //, serfHTTPUnit
+    varsUnit, IdCustomHTTPServer, jobsThreadUnit, MySQLUnit, IdCookie, myconfig.Logs, IdSSL, SocketUnit, FTPSUnit; //, serfHTTPUnit
 
 function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
 procedure CreateMIMEtypesTabel();
@@ -291,6 +291,8 @@ begin
       Result := StringReplace(Result, '[All_tagsList]', MySQL_GetTagsListFromJob_HTML(tempInt), [rfReplaceAll]);
 
       MySQL_GetJob_HTML(tempInt, JobTags, jobName, crone, rules, active);
+
+      Result := StringReplace(Result, '[jobe_id]',  tempInt.ToString, [rfReplaceAll]);
       Result := StringReplace(Result, '[Job_tagsList]',  JobTags, [rfReplaceAll]);
       Result := StringReplace(Result, '[Job_Name]',  jobName, [rfReplaceAll]);
 
@@ -306,24 +308,25 @@ begin
 
 end;
 
-function PostJS(param : string): Integer;
+function PostJS(data : string): Integer;
 var
   js      : TJSONObject;
   action  : string;
 begin
-  try
-    js := TJSONObject.ParseJSONValue(param) as TJSONObject;//переопределяем js как распаршеное сообщение msg
+ // try
+    js := TJSONObject.ParseJSONValue(data) as TJSONObject;//переопределяем js как распаршеное сообщение msg
     if js.TryGetValue('action', action) then
     begin
       if action = 'job_save' then
       begin
-        MySQL_JobSave(js); 
+        MySQL_JobSave(js);
       end;      
     end;
-  except on E: Exception do
-  end;
+//  except on E: Exception do
+ // end;
   
 end;
+
 
 
 
@@ -337,7 +340,6 @@ var
   filename  : string;
 
   Host      : string;
-  job1      : Tjobrec;
 
 
 ////////////////////////////
@@ -347,6 +349,7 @@ var
 
   HTML  : TStringList;
 begin
+  SendData();
   response    := nil;
   params      := nil;
   RequestPage := ARequestInfo.URI;
@@ -360,8 +363,11 @@ begin
   try
     if  authClient(ARequestInfo, AResponseInfo, RequestPage, Host) then
     begin
-      PostJS(ARequestInfo.Params.Text);
-      
+      log.SaveLog(ARequestInfo.Params.IndexOfName('js_data').ToString);
+      log.SaveLog(ARequestInfo.Params.Text);
+     // if ARequestInfo.Params.IndexOfName('js_data') <> -1
+     //   then PostJS(ARequestInfo.Params.Values['js_data']);
+
 
       filename := wwwpath + Host + RequestPage;
       AResponseInfo.ContentText := refreshIndex(filename, ARequestInfo.Params);

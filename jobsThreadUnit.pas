@@ -10,8 +10,8 @@ type
 
   TjobsThread = class(TThread)
   private
-    jobs  : array of Tjobrec;
-    Quere : tqueue<Tjobrec>;
+    jobs  : array of Tjob_scheduler;
+    Quere : tqueue<Tjob>;
     CS    : TCriticalSection;
     { Private declarations }
   protected
@@ -19,8 +19,8 @@ type
   public
     constructor Create();
 
-    procedure AddJob(job : Tjobrec);
-    function  GetJob_toDo(out jobrec : Tjobrec) : boolean;
+    procedure AddJob(job : Tjob_scheduler);
+    function  GetJob_toDo(out jobrec : Tjob) : boolean;
     function  getAllJobs_HTML(): string;
 
   end;
@@ -93,7 +93,7 @@ begin
   Result := TimeStart;
   values := value.Split([' ']);
 
-  if Length(values) = 5 then
+  if Length(values) = 6 then
   begin
     DateTimeToSystemTime(IncMinute(SystemTimeToDateTime(Result)), Result);
 
@@ -137,68 +137,83 @@ var
   AgentsId  : TArray<integer>;
 
   JS_JobResult  : TJsonObject;
-  JS_Jobs       : TJsonObject;
-  JS_JobsArray  : TJSONArray;
-
   needSleep     : Boolean;
+  Job : Tjob;
 begin
-  MySQL_GetNewJob();
-  AgentsId  := TArray<integer>.create();
-  repeat
-    needSleep := True;
-    GetLocalTime(SystemTime);
-    for I := 0 to Length(jobs)-1 do
-    begin
-      JS_Jobs := TJsonObject.Create;
-      JS_JobsArray  := TJSONArray.create;
-      if jobs[i].NextJobTime = 0 then
+  try
+    MySQL_GetNewJob();
+    AgentsId  := TArray<integer>.create();
+    repeat
+      needSleep := True;
+      GetLocalTime(SystemTime);
+      for I := 0 to Length(jobs)-1 do
       begin
-//
-        jobs[i].NextJobTime := SystemTimeToDateTime(FoundNextDate(SystemTime, jobs[i].crone));
-        MySQL_CreateNextJob(jobs[i].ID, jobs[i].NextJobTime);
-      end else
-      begin
+
+
         if jobs[i].NextJobTime < now then
         begin
-          try
-            CS.Enter;
-            Quere.Enqueue(jobs[i]);
-          finally
-            CS.Leave;
+          if jobs[i].NextJobTime <> 0 then
+          begin
+
+            if MySQL_Agent_GetAgentsIDFromJobID(jobs[i].ID, AgentsId) = True then
+            begin
+              jobs[i].NextJobTime := SystemTimeToDateTime(FoundNextDate(SystemTime, jobs[i].crone));
+              for j := 0 to Length(AgentsId)-1 do
+              begin
+                MySQL_CreateNextJob(jobs[i].ID, AgentsId[j], jobs[i].NextJobTime);
+                try
+                  CS.Enter;
+                    Job.job_scheduler := jobs[i];
+                    Job.AgentID       := AgentsId[j];
+                    Job.result        := False;
+                    Quere.Enqueue(Job);
+                    Log.SaveLog('New Job ADD in Quere');
+                finally
+                  CS.Leave;
+                end;
+              end;
+
+
+            end;
           end;
 
           jobs[i].NextJobTime := SystemTimeToDateTime(FoundNextDate(SystemTime, jobs[i].crone));
-          MySQL_CreateNextJob(jobs[i].ID, jobs[i].NextJobTime);
         end;
       end;
+      if needSleep then Sleep(6000);
+    until (false);
+    { Place thread code here }
+  except on E: Exception do
+    begin
+      TjobsThread_dead := True;
+      log.SaveLog('Error TjobsThread dead ' + E.Message);
     end;
-    if needSleep then Sleep(6000);
-  until (false);
-  { Place thread code here }
+  end;
+  log.SaveLog('Error TjobsThread dead 1');
 end;
 
 
 constructor TjobsThread.Create();
 begin
   CS    := TCriticalSection.Create;
-  Quere := tqueue<Tjobrec>.Create;
+  Quere := tqueue<Tjob>.Create;
   inherited Create();
 end;
 
-procedure TjobsThread.AddJob(job : Tjobrec);
+procedure TjobsThread.AddJob(job : Tjob_scheduler);
 begin
   SetLength(jobs, Length(jobs)+1);
   jobs[Length(jobs)-1] := job;
 end;
 
-function  TjobsThread.GetJob_toDo(out jobrec : Tjobrec) : boolean;
+function  TjobsThread.GetJob_toDo(out jobrec : Tjob) : boolean;
 begin
   Result := true;
   try
     CS.Enter;
-  if Quere.Count > 0
-    then jobrec := Quere.Dequeue
-    else Result := false;
+    if Quere.Count > 0
+      then jobrec := Quere.Dequeue
+      else Result := false;
 
   finally
     CS.Leave;

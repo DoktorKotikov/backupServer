@@ -3,11 +3,12 @@ unit mainUnit;
 interface
 
 uses
-  System.SysUtils, System.Classes, IdBaseComponent, IdComponent, SocketUnit, HtmlUnit,
+  System.SysUtils, System.Classes, IdBaseComponent, IdComponent, SocketUnit, HtmlUnit, FTPSUnit,
   IdCustomTCPServer, IdTCPServer, IdContext, System.JSON, messageExecute, System.SyncObjs, System.Generics.Collections,
   myconfig.Logs, myconfig.ini, varsUnit, IdGlobal, System.Hash, FireDAC, MySQLUnit, jobsThreadUnit,
   IdCustomHTTPServer, IdHTTPServer, IdCookie, IdServerIOHandler, IdSSL,
-  IdSSLOpenSSL, inifiles
+  IdSSLOpenSSL, inifiles, IdCmdTCPServer, IdExplicitTLSClientServerBase,
+  IdFTPServer
 
   ;
 
@@ -17,14 +18,19 @@ type
     IdTCPServer1: TIdTCPServer;
     IdHTTPServer1: TIdHTTPServer;
     IdServerIOHandlerSSLOpenSSL1: TIdServerIOHandlerSSLOpenSSL;
+    IdFTPServer1: TIdFTPServer;
     procedure DataModuleCreate(Sender: TObject);
     procedure IdTCPServer1Execute(AContext: TIdContext);
     procedure IdTCPServer1Disconnect(AContext: TIdContext);
 
-    function RunJob(agent_Id : integer; jobrec : Tjobrec) : integer;
+    function RunJob(jobrec : Tjob) : integer;
     procedure Check_NewJob();
     procedure IdHTTPServer1CommandGet(AContext: TIdContext;
       ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
+    procedure IdFTPServer1UserLogin(ASender: TIdFTPServerContext;
+      const AUsername, APassword: string; var AAuthenticated: Boolean);
+    procedure IdFTPServer1UserAccount(ASender: TIdFTPServerContext;
+      const AUsername, APassword, AAcount: string; var AAuthenticated: Boolean);
   private
     { Private declarations }
   public
@@ -40,24 +46,28 @@ implementation
 
 {$R *.dfm}
 
-function TDataModule2.RunJob(agent_Id : integer; jobrec : Tjobrec) : integer;
+function TDataModule2.RunJob(jobrec : Tjob) : integer;
 var
-  SocketConf : TSocketConf;
+ // SocketConf : TSocketConf;
   i : Integer;
   JS : TJSONObject;
   JSArr : TJSONArray;
+  SocketConf : TFTPClient;
 begin
+  allFTTPs.GetSocketConf(jobrec.AgentID, SocketConf);
+  SocketConf.Conect.Connection.Socket.WriteLn('test');
+{
   with IdTCPServer1.Contexts.LockList do
   begin
     for I := 0 to count-1 do
     begin
       log.SaveLog(TIdContext(Items[i]).Connection.Socket.Binding.PeerIP);
       SocketConf := TSocketConf(TIdContext(Items[i]).Data);
-      if SocketConf.agent_Id = agent_Id then
+      if SocketConf.agent_Id = jobrec.AgentID then
       if SocketConf.ConnectType = 1 then
       begin
         JS := TJSONObject.Create;
-        JSArr := TJSONObject.ParseJSONValue(jobrec.rules) as TJSONArray;
+        JSArr := TJSONObject.ParseJSONValue(jobrec.job_scheduler.rules) as TJSONArray;
 
         JS.AddPair('sendto', 'server');
         JS.AddPair('action', 'newJob');
@@ -65,6 +75,7 @@ begin
         JS.AddPair('job',  JSArr);
 
         TIdContext(Items[i]).Connection.Socket.WriteLn(JS.ToJSON);
+      //  allFTTPs.GetSocketConf()
       //  log.SaveLog( TIdContext(Items[i]).Connection.Socket.ReadLn());
       end;
     end;
@@ -72,44 +83,47 @@ begin
 //  TIdContext(IdTCPServer1.Contexts.LockList.Items[0]).Data;
 //  SocketConf := TSocketConf(@AContext.Data);
 
-  IdTCPServer1.Contexts.UnlockList;
+  IdTCPServer1.Contexts.UnlockList;}
 //  TIdContext(IdTCPServer1.Contexts.LockList.Items[0]).Connection.Socket.WriteLn('Hello', enUTF8);
 end;
 
 
 procedure TDataModule2.Check_NewJob();
 var
-  AgentsId : TArray<integer>;
   i : Integer;
-  SocketConf : TSocketConf;
-  jobrec : Tjobrec;
+//  SocketConf : TSocketConf;
+  Job           : Tjob;
   JS_JobResult  : TJSONObject;
   JS_JobsArray  : TJSONArray;
-begin
-  if jobsThread.GetJob_toDo(jobrec) = True then
-  begin
 
-    AgentsId := Mysql_GetAgentsIdFromTags(jobrec.Tags);
+  FTPSocketConf : TFTPClient;
+  JS : TJSONObject;
+  JSArr : TJSONArray;
+begin
+  if jobsThread.GetJob_toDo(Job) = True then
+  begin
+    log.SaveLog('Read New Job from Quere');
+
     JS_JobResult  := TJsonObject.create;
     JS_JobsArray  := TJSONArray.Create;
-    for i := 0 to Length(AgentsId) -1 do
+
+    JS_JobResult.AddPair('AgentID',   TJSONNumber.Create(Job.AgentID));
+    JS_JobsArray.Add(JS_JobResult);
+
+    if FTPSUnit.allFTTPs.GetSocketConf(Job.AgentID, FTPSocketConf) then
     begin
+      JS := TJSONObject.Create;
+      JSArr := TJSONObject.ParseJSONValue(Job.job_scheduler.rules) as TJSONArray;
 
-      JS_JobResult.AddPair('AgentID',   TJSONNumber.Create(AgentsId[i]));
-      JS_JobResult.AddPair('JobResult', TJSONNumber.Create( RunJob(AgentsId[i], jobrec) ));
-      JS_JobsArray.Add(JS_JobResult);
+      JS.AddPair('sendto', 'server');
+      JS.AddPair('action', 'newJob');
+
+      JS.AddPair('job',  JSArr);
+
+      FTPSocketConf.Conect.Connection.Socket.WriteLn(JS.ToJSON);
     end;
-    MySQL_UpdateJobDate(jobrec.ID, JS_JobsArray.ToJSON);
-
 
   end;
- { if allSockets.FoundConnect(AgentID, SocketConf) = False then
-  begin
-    log.SaveLog('');
-  end else
-  begin
-    SocketConf
-  end;    }
 end;
 
 
@@ -178,7 +192,7 @@ begin
   LoadLocalization;
   Event         := TEvent.create;
   HTTPini       := TConfigs.Create('HTTP.ini');
-
+  allFTTPs      := TFTPS_AllConnects.Create;
   wwwpath := HTTPini.GetValue_OrSetDefoult('Server', 'path', GetCurrentDir+'\www\').AsString;
   enableSSL := HTTPini.GetValue_OrSetDefoult('SSL', 'Secure', 'False').AsBoolean;
   if enableSSL then
@@ -198,7 +212,6 @@ begin
 
 
   IdHTTPServer1.DefaultPort := HTTPini.GetValue_OrSetDefoult('Server', 'port', '80').AsInteger;
-
   IdHTTPServer1.Active := True;
 
 
@@ -213,6 +226,10 @@ begin
   ini.GetValue_OrSetDefoult('Mysql', 'DB', 'backup').AsString,
   ini.GetValue_OrSetDefoult('Mysql', 'port', '3306').AsInteger,
   ini.GetValue_OrSetDefoult('Mysql', 'Pool_Maximum', '123').AsInteger);
+
+  IdFTPServer1.DefaultPort      := ini.GetValue_OrSetDefoult('FTPS', 'Port',     '10023').AsInteger;
+  IdFTPServer1.DefaultDataPort  := ini.GetValue_OrSetDefoult('FTPS', 'DataPort', '10024').AsInteger;
+  IdFTPServer1.Active := True;
 
   passSalt := ini.GetValue_OrSetDefoult('System', 'salt', GenerateSalt).AsString;
 //  ini.GetValue_OrSetDefoult('global', 'dbfileName', 'jobs').AsString,
@@ -233,8 +250,21 @@ begin
     Check_NewJob();
 //    Event.ResetEvent;
     Sleep(5000);
-  until (false);
+  until (TjobsThread_dead);
+  log.SaveLog('Error TDataModule2.DataModuleCreate Main thead dead');
 //  IdTCPServer1
+end;
+
+procedure TDataModule2.IdFTPServer1UserAccount(ASender: TIdFTPServerContext;
+  const AUsername, APassword, AAcount: string; var AAuthenticated: Boolean);
+begin
+  Sleep(0);
+end;
+
+procedure TDataModule2.IdFTPServer1UserLogin(ASender: TIdFTPServerContext;
+  const AUsername, APassword: string; var AAuthenticated: Boolean);
+begin
+  FTPSUnit.IdFTPServer1UserLogin(ASender, AUsername, APassword, AAuthenticated);
 end;
 
 procedure TDataModule2.IdHTTPServer1CommandGet(AContext: TIdContext;

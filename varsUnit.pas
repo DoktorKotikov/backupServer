@@ -6,8 +6,7 @@ uses System.SysUtils, myconfig.ini, myconfig.Logs, FireDAC, System.SyncObjs, Sys
 
 
 type
-  Tjobrec = record
-    //jobsDate_ID : Integer;
+  Tjob_scheduler = record
     ID      : integer;
     JobName : string;
     rules   : string;
@@ -15,9 +14,12 @@ type
     Tags    : string;
     active  : Integer;
     NextJobTime : TDateTime;
+  end;
 
-//    constructor Create();
-//    destructor Free();
+  TJob = record
+    job_scheduler : Tjob_scheduler;
+    AgentID : integer;
+    result  : boolean;
   end;
 
 const
@@ -64,7 +66,7 @@ var
 
   Localization1 : TDictionary<string, TDictionary<string, Tlist<TLangKeyAndValue>>>;
   //Localization : TDictionary<string,string>;
-
+  TjobsThread_dead : Boolean = False;
 function GenerateSalt(): string;
 implementation
 

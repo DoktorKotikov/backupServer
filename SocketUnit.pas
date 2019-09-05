@@ -28,7 +28,7 @@ type
     Sockets : TDictionary<integer, TSocketConf>;
   public
     constructor Create();
-    function AddNewSocket(Hach : integer;  ip : string) : TSocketConf;
+    function AddNewSocket(Hach : integer; ip : string) : TSocketConf;
     function GetSocketConf(Hach : integer; out SocketConf : TSocketConf) : boolean;
     function FoundConnect(agentID : Integer; out SocketConf : TSocketConf) : boolean;
     function getActiveSockets(): string;
@@ -61,9 +61,7 @@ function TSocketsAll.AddNewSocket(Hach : integer; ip : string) : TSocketConf;
 begin
   try
     CS.Enter;
-    result := TSocketConf.Create(Hach, ip);
-
-    Sockets.Add(Hach, result);
+  //  Sockets.Add(AgentId, result);
   finally
     CS.Leave;
   end;
