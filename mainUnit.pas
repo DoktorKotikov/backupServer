@@ -21,9 +21,7 @@ type
     IdFTPServer1: TIdFTPServer;
     procedure DataModuleCreate(Sender: TObject);
     procedure IdTCPServer1Execute(AContext: TIdContext);
-    procedure IdTCPServer1Disconnect(AContext: TIdContext);
 
-    function RunJob(jobrec : Tjob) : integer;
     procedure Check_NewJob();
     procedure IdHTTPServer1CommandGet(AContext: TIdContext;
       ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
@@ -31,6 +29,10 @@ type
       const AUsername, APassword: string; var AAuthenticated: Boolean);
     procedure IdFTPServer1UserAccount(ASender: TIdFTPServerContext;
       const AUsername, APassword, AAcount: string; var AAuthenticated: Boolean);
+    procedure IdTCPServer1Exception(AContext: TIdContext;
+      AException: Exception);
+    procedure IdTCPServer1Disconnect(AContext: TIdContext);
+    procedure IdTCPServer1Connect(AContext: TIdContext);
   private
     { Private declarations }
   public
@@ -46,48 +48,6 @@ implementation
 
 {$R *.dfm}
 
-function TDataModule2.RunJob(jobrec : Tjob) : integer;
-var
- // SocketConf : TSocketConf;
-  i : Integer;
-  JS : TJSONObject;
-  JSArr : TJSONArray;
-  SocketConf : TFTPClient;
-begin
-  allFTTPs.GetSocketConf(jobrec.AgentID, SocketConf);
-  SocketConf.Conect.Connection.Socket.WriteLn('test');
-{
-  with IdTCPServer1.Contexts.LockList do
-  begin
-    for I := 0 to count-1 do
-    begin
-      log.SaveLog(TIdContext(Items[i]).Connection.Socket.Binding.PeerIP);
-      SocketConf := TSocketConf(TIdContext(Items[i]).Data);
-      if SocketConf.agent_Id = jobrec.AgentID then
-      if SocketConf.ConnectType = 1 then
-      begin
-        JS := TJSONObject.Create;
-        JSArr := TJSONObject.ParseJSONValue(jobrec.job_scheduler.rules) as TJSONArray;
-
-        JS.AddPair('sendto', 'server');
-        JS.AddPair('action', 'newJob');
-
-        JS.AddPair('job',  JSArr);
-
-        TIdContext(Items[i]).Connection.Socket.WriteLn(JS.ToJSON);
-      //  allFTTPs.GetSocketConf()
-      //  log.SaveLog( TIdContext(Items[i]).Connection.Socket.ReadLn());
-      end;
-    end;
-  end;
-//  TIdContext(IdTCPServer1.Contexts.LockList.Items[0]).Data;
-//  SocketConf := TSocketConf(@AContext.Data);
-
-  IdTCPServer1.Contexts.UnlockList;}
-//  TIdContext(IdTCPServer1.Contexts.LockList.Items[0]).Connection.Socket.WriteLn('Hello', enUTF8);
-end;
-
-
 procedure TDataModule2.Check_NewJob();
 var
   i : Integer;
@@ -99,30 +59,41 @@ var
   FTPSocketConf : TFTPClient;
   JS : TJSONObject;
   JSArr : TJSONArray;
+  Agent       : TAgent;
+  result      : string;
 begin
   if jobsThread.GetJob_toDo(Job) = True then
   begin
     log.SaveLog('Read New Job from Quere');
-
     JS_JobResult  := TJsonObject.create;
     JS_JobsArray  := TJSONArray.Create;
 
     JS_JobResult.AddPair('AgentID',   TJSONNumber.Create(Job.AgentID));
     JS_JobsArray.Add(JS_JobResult);
 
-    if FTPSUnit.allFTTPs.GetSocketConf(Job.AgentID, FTPSocketConf) then
+
+    JS := TJSONObject.Create;
+    JSArr := TJSONObject.ParseJSONValue(Job.job_scheduler.rules) as TJSONArray;
+
+    JS.AddPair('sendto', 'server');
+    JS.AddPair('action', 'newJob');
+
+    JS.AddPair('job',  JSArr);
+
+    if AllAgents.GetSocketConf(Job.AgentID, Agent) then
     begin
-      JS := TJSONObject.Create;
-      JSArr := TJSONObject.ParseJSONValue(Job.job_scheduler.rules) as TJSONArray;
-
-      JS.AddPair('sendto', 'server');
-      JS.AddPair('action', 'newJob');
-
-      JS.AddPair('job',  JSArr);
-
-      FTPSocketConf.Conect.Connection.Socket.WriteLn(JS.ToJSON);
+      try
+        if Agent.AContext <> nil then
+        begin
+          Agent.AContext.Connection.Socket.WriteLn(JS.ToJSON);
+          result := Agent.AContext.Connection.Socket.ReadLn();
+        end;
+      except on E: Exception do
+        begin
+          log.SaveLog('Error socker 1' + E.Message);
+        end;
+      end;
     end;
-
   end;
 end;
 
@@ -183,6 +154,14 @@ procedure TDataModule2.DataModuleCreate(Sender: TObject);
 var
  test : TSQL;
 begin
+ // FS  := TFormatSettings.Create;
+  FS  := FormatSettings;
+  FS.DecimalSeparator := '.';
+  FS.TimeSeparator    := ':';
+  FS.LongDateFormat   := 'yyyy-mm-dd';
+  FS.ShortDateFormat  := 'yyyy-mm-dd';
+  FS.LongTimeFormat   := 'hh:nn:ss';
+  FS.ShortTimeFormat  := 'hh:nn:ss';
   log := TLogsSaveClasses.Create();
   MyDir         := GetCurrentDir;
   CreateMIMEtypesTabel;
@@ -239,7 +218,7 @@ begin
 
   secretKey := ini.GetValue_OrSetDefoult('socket', 'key','').AsString;
 
-  allSockets := TSocketsAll.Create;//создаем allSockets из socketUnit
+  AllAgents := TAllAgents.Create;//создаем allSockets из socketUnit
   IdTCPServer1.DefaultPort := ini.GetValue_OrSetDefoult('socket', 'port', '80').AsInteger;
   IdTCPServer1.Active := True;
 
@@ -273,107 +252,120 @@ begin
   GetHTML(ARequestInfo, AResponseInfo);
 end;
 
+procedure TDataModule2.IdTCPServer1Connect(AContext: TIdContext);
+var
+  msg         : string;
+  Agent       : TAgent;
+  ID          : Integer;
+  js          : TJSONObject;
+begin
+  try
+    log.SaveLog('new connect ' + AContext.Connection.Socket.Binding.PeerIP);
+    msg := AContext.Connection.Socket.ReadLn(#13, 5000, 1024);
+
+  except on E: Exception do
+    begin
+      log.SaveLog('Socket error ' + E.Message);
+    end;
+  end;
+  if msg <> '' then
+  begin
+    if Check_AgentLogin(msg, ID) = 0 then
+    begin
+      js :=  TJSONObject.Create;
+      try
+        js.AddPair('action', 'login');
+        if AllAgents.СheckAlreadyConnected(ID) = false then
+        begin
+          js.AddPair('result', TJSONNumber.Create(0));
+          Agent    := AllAgents.AddNewSocket(ID, AContext);
+          MySQL_Agent_SetOnline(Agent.agent_Id, Now, true);
+          AContext.Connection.Socket.WriteLn(js.ToJSON);
+          AContext.Data := Agent;
+        end else
+        begin
+          js.AddPair('result', TJSONNumber.Create(1000));
+          js.AddPair('error', 'Error AlreadyConnected');
+          Sleep(5000);
+          AContext.Connection.Socket.WriteLn(js.ToJSON);
+          AContext.Connection.Socket.InputBuffer.Clear;
+          AContext.Connection.Socket.Close;
+        end;
+      finally
+        js.Free;
+      end;
+    end else
+    begin
+      AContext.Connection.Socket.InputBuffer.Clear;
+      AContext.Connection.Socket.Close;
+    end;
+  end else
+  begin
+    AContext.Connection.Socket.InputBuffer.Clear;
+    AContext.Connection.Socket.Close;
+  end;
+end;
+
 procedure TDataModule2.IdTCPServer1Disconnect(AContext: TIdContext);
 var
-  SocketConf : TSocketConf;
+  Agent  : TAgent;
 begin
-  SocketConf := TSocketConf(@AContext.Data);
+  log.SaveLog(AContext.Connection.Socket.Binding.PeerIP + ' disconet');
+  if AContext.Data <> nil then
+  begin
+    Agent := TAgent(AContext.Data);
+    AllAgents.delete(Agent.Agent.agentID);
+    MySQL_Agent_SetOnline(Agent.Agent.agentID, Now, false);
+  end;
+end;
 
-  //allSockets
-
-  SocketConf.fileStrim.Free;
- // SocketConf.fileStrim.Destroy;
+procedure TDataModule2.IdTCPServer1Exception(AContext: TIdContext;
+  AException: Exception);
+begin
+  AException.Free;
 end;
 
 procedure TDataModule2.IdTCPServer1Execute(AContext: TIdContext);
 var
   msg   : string;
-  code  : integer;
-  js    : TJSONObject;
-  SocketConf : TSocketConf;
+  code, ID  : integer;
+  Agent   : TAgent;
   boof    : TIdBytes;
 
   test    : Byte;
   HashMD5 : THashMD5;
 begin
-  SetLength(boof, 1);
-  log.SaveLog(AContext.Connection.Socket.Binding.PeerPort.ToString);
-  if allSockets.GetSocketConf(AContext.GetHashCode, SocketConf) = false then
-  begin
-  //  msg := AContext.Connection.Socket.ReadLn();
-    SocketConf    := allSockets.AddNewSocket(AContext.GetHashCode, AContext.Connection.Socket.Binding.PeerIP);
-    AContext.Data := SocketConf;
-  end;
+  msg := '';
+  try
+ //   log.SaveLog(AContext.Connection.Socket.Binding.PeerIP);
 
-
-  case SocketConf.ConnectType of
-    0 :
+    if AContext.Data <> nil then
     begin
-      msg := AContext.Connection.Socket.ReadLn();
-      if newMessage(msg, SocketConf) = 0 then
+      Agent := TAgent(AContext.Data);
+      Agent.lastOnline := Now;
+      msg := AContext.Connection.Socket.ReadLn(#13, 5000, 5120);
+      if msg <> '' then
+      if newMessage(msg, Agent) = 0 then
       begin
-        js :=  TJSONObject.Create;
-        js.AddPair('action', 'login');
-        js.AddPair('result', TJSONNumber.Create(0));
-
-        MySQL_Agent_SetOnline(SocketConf.agent_Id, true);
-
-        AContext.Connection.Socket.WriteLn(js.ToJSON);
-        js.Free;
       end else
       begin
-     //   AContext.Connection.Socket.Close;
-        // послать ошибку авторизации.
+  //      AContext.Connection.Socket.Close;
+        // послать ошибку.
       end;
-    end;
-
-    1 :
+    end else
     begin
-      msg := AContext.Connection.Socket.ReadLn();
-      newMessage(msg, SocketConf);
-     // if 'action' = 'sendfile' then SocketConf.ConnectType := 3;
-     // js := getNewJob();
-
-    //  msg := js.ToJSON;
-    //  msg := '{}';
-     // AContext.Connection.Socket.WriteLn(msg);
-
-    end;
-
-    3 :
-    begin
-      test := AContext.Connection.Socket.ReadByte;//  ReadBytes(boof, SizeOf(Byte));
-      SocketConf.fileStrim.Write(test, SizeOf(test));
-      if SocketConf.fileStrim.Size = SocketConf.fileSize then
-      begin
-        SocketConf.fileStrim.Free;
-        HashMD5 := THashMD5.Create;
-        js :=  TJSONObject.Create;
-        js.AddPair('action', 'getRequestOfFileSending');
-        if SocketConf.MD5 = HashMD5.GetHashStringFromFile(SocketConf.filedir + '\' + SocketConf.fileName) then
-        begin
-          js.AddPair('request', 'true');
-          AContext.Connection.Socket.WriteLn(js.ToJSON);
-        end else
-        begin
-          js.AddPair('request', 'false');
-          AContext.Connection.Socket.WriteLn(js.ToJSON);
-        end;
-        js.Free;
-      end;
-    end;
-
-    10 :
-    begin
+      log.SaveLog('Socket error Data is nil');
+      AContext.Connection.Socket.InputBuffer.Clear;
       AContext.Connection.Socket.Close;
     end;
 
+  except on E: Exception do
+    begin
+      log.SaveLog('Error socker ' + E.Message);
+      AContext.Connection.Socket.InputBuffer.Clear;
+      AContext.Connection.Socket.Close;
+    end;
   end;
-
-
-
-  //  AContext
-    //AContext.Data
 end;
 
 end.

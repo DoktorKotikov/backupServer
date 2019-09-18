@@ -6,7 +6,9 @@ object DataModule2: TDataModule2
   object IdTCPServer1: TIdTCPServer
     Bindings = <>
     DefaultPort = 0
+    OnConnect = IdTCPServer1Connect
     OnDisconnect = IdTCPServer1Disconnect
+    OnException = IdTCPServer1Exception
     OnExecute = IdTCPServer1Execute
     Left = 32
     Top = 24

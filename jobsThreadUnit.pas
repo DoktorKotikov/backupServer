@@ -160,13 +160,14 @@ begin
               jobs[i].NextJobTime := SystemTimeToDateTime(FoundNextDate(SystemTime, jobs[i].crone));
               for j := 0 to Length(AgentsId)-1 do
               begin
-                MySQL_CreateNextJob(jobs[i].ID, AgentsId[j], jobs[i].NextJobTime);
+                Job.job_schedulerID := MySQL_CreateNextJob(jobs[i].ID, AgentsId[j], jobs[i].NextJobTime);
                 try
                   CS.Enter;
                     Job.job_scheduler := jobs[i];
                     Job.AgentID       := AgentsId[j];
                     Job.result        := False;
                     Quere.Enqueue(Job);
+                    AllAgents.AddNewTask(Job);
                     Log.SaveLog('New Job ADD in Quere');
                 finally
                   CS.Leave;
@@ -197,7 +198,8 @@ constructor TjobsThread.Create();
 begin
   CS    := TCriticalSection.Create;
   Quere := tqueue<Tjob>.Create;
-  inherited Create();
+//  inherited Create();
+  inherited Create(false);
 end;
 
 procedure TjobsThread.AddJob(job : Tjob_scheduler);

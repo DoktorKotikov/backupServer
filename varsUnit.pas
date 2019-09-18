@@ -6,6 +6,16 @@ uses System.SysUtils, myconfig.ini, myconfig.Logs, FireDAC, System.SyncObjs, Sys
 
 
 type
+  TAgentConf = record
+    agentID     : integer;
+    Name        : string;
+    Auth_type   : integer;
+    Key         : string;
+    status      : integer;
+    LastOnline  : TDateTime;
+  end;
+  TAAgentConf = array of TAgentConf;
+
   Tjob_scheduler = record
     ID      : integer;
     JobName : string;
@@ -18,13 +28,21 @@ type
 
   TJob = record
     job_scheduler : Tjob_scheduler;
+    job_schedulerID : integer;
     AgentID : integer;
     result  : boolean;
   end;
 
+  TAJob = array of TJob;
+
 const
   AUTH_TYPE_AUTH_ByIP = 0;
   AUTH_TYPE_AUTH_Bykey = 1;
+
+//  ErrorCodes
+  Error_Socket_IncorrectLoginPas  = 1001;
+  Error_Socket_badJson            = 1002;
+
 
 
    {
@@ -59,6 +77,8 @@ var
   wwwpath     : string;
   wwwpathSeparator  : Char = '\';
   passSalt    : string;
+
+  FS : TFormatSettings;
 
   enableSSL     : Boolean;
 //  Localization  : TDictionary<string, TLangPage>;

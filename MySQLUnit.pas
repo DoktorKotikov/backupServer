@@ -11,13 +11,16 @@ function MySQL_JobSave(js : TJSONObject): Integer;
 function MySQL_Agent_GetAgentsIDFromJobID(JobID : Integer; out AgentsId  : TArray<integer>): Boolean;
 function MySQL_Agent_GetData(name : string; out pass : string; out TAGS : string; out AgentID : integer): boolean;
 function MySQL_Agent_SetOfflineALL(): Integer;
-function MySQL_Agent_SetOnline(AgentID : integer; Online : boolean): Integer;
+function MySQL_Agent_SetOnline(AgentID : integer; lastOnline : TDateTime; Online : boolean): Integer;
+function MySQL_Agent_CheckLogin(key, ip, name : string; out ID: integer): Integer;
+
+function MySQL_GetJobsDate_ALL(): TAJob;
 function MySQL_GetJob_HTML(jobID : integer; out tags : string; out name : string; out crone : string; out rules : string; out active : integer): integer;
 function MySQL_GetAgentTags(agentId : integer): string;
 function MySQL_GetTagsListFromJob_HTML(JobID : integer) : string;
 function MySQL_GetTagsListHTML() : string;
-function MySQL_CheckLogin(key, ip, name : string; out ID: integer): Integer;
 function MySQL_CreateNextJob(JobId, AgentID : Integer; NextDate : TDateTime): Integer;
+function MySQL_CloseJonb(ID : integer; JobResult : integer) : integer;
 function MySQL_GetNewJob(): Integer;
 function Mysql_GetAgentsIdFromTags(tags : string): TArray<integer>;
 function MySQL_UpdateJobDate(id : Integer; JobResult : string): Integer;
@@ -26,6 +29,7 @@ function MySQL_CheckLoginPass(Login, pass : string) : Boolean;
 function MySQL_ADDHTTPSession(Login, RemoteIP, UserAgent : string): string;
 function Mysql_GetANDCheckHTTPSession(AuthToken, RemoteIP, UserAgent : string): Boolean;
 
+function MySQL_Agents_GetAllAgents(): TAAgentConf;
 function MySQL_Agents_GetAllAgents_HTML(): string;
 
 
@@ -229,7 +233,7 @@ begin
   end;
 end;
 
-function MySQL_Agent_SetOnline(AgentID : integer; Online : boolean): Integer;
+function MySQL_Agent_SetOnline(AgentID : integer; lastOnline : TDateTime; Online : boolean): Integer;
 var
   query : TSQL;
 begin
@@ -237,7 +241,7 @@ begin
   try
     query := SQL.Create_SQL;
     if Online
-      then query.SQL.Text := 'UPDATE `agents` SET `ONLINE` = true   WHERE `ID` =  ' + AgentID.ToString
+      then query.SQL.Text := 'UPDATE `agents` SET `ONLINE` = true, `LASTONLINE` = "'+DateTimeToStr(lastOnline, FS)+'"    WHERE `ID` =  ' + AgentID.ToString
       else query.SQL.Text := 'UPDATE `agents` SET `ONLINE` = false  WHERE `ID` =  ' + AgentID.ToString;
 
     query.ExecSQL;
@@ -349,7 +353,7 @@ end;
 
 
 
-function MySQL_CheckLogin(key, ip, name : string; out ID: integer): Integer;
+function MySQL_Agent_CheckLogin(key, ip, name : string; out ID: integer): Integer;
 var
   query : TSQL;
   TAGS  : string;
@@ -397,33 +401,66 @@ begin
   query.Free;
 end;
 
+function MySQL_GetJobsDate_ALL(): TAJob;
+var
+  query   : TSQL;
+  i       : Integer;
+begin
+  query := nil;
+  try
+   { query := SQL.Create_SQL;
+    query.SQL.Text  := 'SELECT * FROM `jobsDate` WHERE `Status` IN ("new")';
+    query.Active    := True;
+    SetLength(Result, query.RecordCount);
+    for i := 1 to query.RecordCount do
+    begin
+      query.RecNo    := i;
+      Result[i-1].AgentID                 := query.FieldByName('AgentID').AsInteger;
+      Result[i-1].job_scheduler.ID        := query.FieldByName('ID').AsInteger;
+      Result[i-1].job_scheduler.JobName   := query.FieldByName('ID').AsInteger;
+      Result[i-1].job_scheduler.rules     := query.FieldByName('ID').AsInteger;
+      Result[i-1].job_scheduler.crone     := query.FieldByName('ID').AsInteger;
+      Result[i-1].job_scheduler.Tags      := query.FieldByName('ID').AsInteger;
+      Result[i-1].job_scheduler.active    := query.FieldByName('ID').AsInteger;
+
+    end;
+             }
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
+
 function MySQL_GetJobsDate(jodId : integer): TDateTime;
 var
   query   : TSQL;
   i       : Integer;
 begin
-  query := SQL.Create_SQL;
-  query.SQL.Text  := 'SELECT * FROM `jobsDate` WHERE `Status` IN ("new") AND `jobID` = ' + jodId.ToString;
-  query.Active    := True;
-  if query.RecordCount = 1 then
-  begin
-    query.RecNo    := 1;
-    Result := query.FieldByName('Date').AsDateTime;
-  end else
-  begin
-    if query.RecordCount = 0 then
+  query := nil;
+  try
+    query := SQL.Create_SQL;
+    query.SQL.Text  := 'SELECT * FROM `jobsDate` WHERE `Status` IN ("new") AND `jobID` = ' + jodId.ToString;
+    query.Active    := True;
+    if query.RecordCount = 1 then
     begin
-      Result := 0;
+      query.RecNo    := 1;
+      Result := query.FieldByName('Date').AsDateTime;
     end else
     begin
-      log.SaveLog('Error found more 1 next jobs');
-      query.SQL.Text  := 'DELETE FROM `jobsDate` WHERE `Status` IN ("new") AND `jobID` = ' + jodId.ToString;
-      query.ExecSQL;
-      Result := 0;
-    end;
+      if query.RecordCount = 0 then
+      begin
+        Result := 0;
+      end else
+      begin
+        log.SaveLog('Error found more 1 next jobs');
+        query.SQL.Text  := 'DELETE FROM `jobsDate` WHERE `Status` IN ("new") AND `jobID` = ' + jodId.ToString;
+        query.ExecSQL;
+        Result := 0;
+      end;
 
+    end;
+  finally
+    if query <> nil then query.Free;
   end;
-  query.Free;
 end;
 
 function MySQL_CreateNextJob(JobId, AgentID : Integer; NextDate : TDateTime): Integer;
@@ -431,6 +468,7 @@ var
   query   : TSQL;
   AFormatSettings: TFormatSettings;
 begin
+  result       := -1;
   AFormatSettings := FormatSettings;
   AFormatSettings.DecimalSeparator := '.';
   AFormatSettings.TimeSeparator    := ':';
@@ -439,43 +477,35 @@ begin
   AFormatSettings.LongTimeFormat   := 'hh:nn:ss.zzz';
   AFormatSettings.ShortTimeFormat  := 'hh:nn:ss.zzz';
 
-  query := SQL.Create_SQL;
-  query.SQL.Text  := '  INSERT INTO `jobsDate` (`jobID`, `AgentID`,  `Date`, `Status`, `result`) VALUES ';
-  query.SQL.Add('('+JobId.ToString+',' +AgentID.ToString+ ', "' +FormatDateTime('yyyy-mm-dd hh:mm', NextDate, AFormatSettings)+'", "new", 0)');
-  query.ExecSQL;
+  query := nil;
+  try
+    query := SQL.Create_SQL;
+    query.SQL.Text  := '  INSERT INTO `jobsDate` (`jobID`, `AgentID`,  `Date`, `Status`, `result`) VALUES ';
+    query.SQL.Add('('+JobId.ToString+',' +AgentID.ToString+ ', "' +FormatDateTime('yyyy-mm-dd hh:mm', NextDate, AFormatSettings)+'", "new", 0)');
+    query.ExecSQL;
 
+    query.SQL.Text := 'SELECT last_insert_id() as id';
+    query.Open;
+    query.RecNo  := 1;
+    result       :=  query.FieldByName('id').AsInteger;
+  finally
+    if query <> nil then query.Free;
+  end;
 
-  query.Free;
 end;
-               {
-function MySQL_ADDNewJobe (jobe : Tjobrec) : integer;
+
+function MySQL_CloseJonb(ID : integer; JobResult : integer) : integer;
 var
   query   : TSQL;
 begin
-  query := SQL.Create_SQL;
-  query.SQL.Text  := 'INSERT INTO `jobs` (`jobID`, `JobName`, `Tags`, `rules`, `Crone`, `active`) VALUES ';
-
-  query.SQL.Add('(:jobID, :JobName, :Tags, :rules, :Crone, :active)');
-  query.Params.CreateParam(ftInteger, 'jobID',    ptInput);
-  query.Params.CreateParam(ftString,  'JobName',  ptInput);
-  query.Params.CreateParam(ftString,  'Tags',     ptInput);
-  query.Params.CreateParam(ftString,  'rules',    ptInput);
-  query.Params.CreateParam(ftString,  'Crone',    ptInput);
-  query.Params.CreateParam(ftInteger, 'active',   ptInput);
-
-  query.ParamByName('jobID').AsInteger    := jobe.ID;
-  query.ParamByName('JobName').AsString   := jobe.JobName;
-  query.ParamByName('Tags').AsString      := jobe.Tags;
-  query.ParamByName('rules').AsString     := jobe.rules;
-  query.ParamByName('Crone').AsString     := jobe.crone;
-  query.ParamByName('active').AsInteger   := jobe.active;
-
-
-  query.ExecSQL;
-
-
-  query.Free;
-end;            }
+  query := nil;
+  try
+    query := SQL.Create_SQL;
+    query.ExecSQL('UPDATE `jobsDate` SET `Status` = "close" `result` = '+JobResult.ToString+' WHERE `ID` = ' + ID.ToString)
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
 
 function MySQL_GetNewJob(): Integer;
 var
@@ -626,6 +656,31 @@ begin
 
         end;
       end;
+    end;
+
+  finally
+    query.Free;
+  end;
+end;
+
+function MySQL_Agents_GetAllAgents(): TAAgentConf;
+var
+  query   : TSQL;
+  i       : integer;
+begin
+  try
+    query := SQL.Create_SQL;
+    query.Open('SELECT * FROM `agents`');
+    SetLength(Result, query.RecordCount);
+    for I := 1 to query.RecordCount do
+    begin
+      query.RecNo := i;
+      Result[i-1].agentID       := query.FieldByName('ID').AsInteger;
+      Result[i-1].Name          := query.FieldByName('Name').AsString;
+      Result[i-1].Auth_type     := query.FieldByName('Auth_type').AsInteger;
+      Result[i-1].Key           := query.FieldByName('Key').AsString;
+      Result[i-1].status        := query.FieldByName('status').AsInteger;
+      Result[i-1].LastOnline    := query.FieldByName('LastOnline').AsDateTime;
     end;
 
   finally
