@@ -430,7 +430,7 @@ begin
   end;
 end;
 
-function MySQL_GetJobsDate(jodId : integer): TDateTime;
+function MySQL_GetJobsDate(jodId : integer): TDateTime;     {разобраться если больше одной джоны}
 var
   query   : TSQL;
   i       : Integer;
