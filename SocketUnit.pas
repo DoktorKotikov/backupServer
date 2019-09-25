@@ -9,6 +9,7 @@ type
 
   TAgent = class(TThread)
   private
+  protected
     CS_Agent    : TCriticalSection;
     Quere       : tqueue<Tjob>;
     fContext    : TIdContext;
@@ -33,13 +34,13 @@ type
   TAllAgents = class(TThread)
   private
     CS : TCriticalSection;
-    AllAgents : TDictionary<integer, TAgent>;
+    fAllAgents : TDictionary<integer, TAgent>;
   public
     constructor Create();
     function ÑheckAlreadyConnected(agentID : integer): boolean;
     function AddNewSocket(agentID : integer; AContext : TIdContext) : TAgent;
     function GetSocketConf(agentID : integer; out AgentConf : TAgent) : boolean;
-    function delete(agentID : integer): Integer;
+    function AgentDisconnect(agentID : integer): Integer;
   //  function AddJob(job : Tjob) : boolean;
     //    function FoundConnect(agentID : Integer; out SocketConf : TSocketConf) : boolean;
 //    function getActiveSockets(): string;
@@ -55,16 +56,38 @@ implementation
 
 
 procedure TAllAgents.Execute;
+var
+  Agent : TAgent;
 begin
   repeat
-    Sleep(1000);
+    Sleep(60000);
+    try
+      CS.Enter;
+      for Agent in Self.fAllAgents.Values do
+      begin
+        Agent.IsConnect;
+      end;
+    finally
+      CS.Leave;
+    end;
+
+
   until (Terminated);
 end;
 
 procedure TAgent.UpdateAContext(AContext_ : TIdContext);
 begin
-  fContext := AContext_;
-  Event.SetEvent;
+  try
+    CS_Agent.Enter;
+    fContext := AContext_;
+    if AContext_ <> nil then
+    begin
+      fContext.Data  := Self;
+    end;
+    Event.SetEvent;
+  finally
+    CS_Agent.Leave;
+  end;
 end;
 
 
@@ -83,15 +106,16 @@ end;
 function  TAgent.JobToJS(job : Tjob): string;
 var
   s     : string;
-  JS    : TJSONObject;
+  JS, JSSendTo    : TJSONObject;
   JSArr : TJSONArray;
 begin
   JS := TJSONObject.Create;
   JSArr := TJSONObject.ParseJSONValue(Job.job_scheduler.rules) as TJSONArray;
 
-  JS.AddPair('sendto', 'server');
+//  JS.AddPair('sendto', 'server');
   JS.AddPair('action', 'newJob');
-
+  JSSendTo := TJSONObject.ParseJSONValue(MySQL_SendTo_getConfig(Job.job_scheduler.sendTo)) as TJSONObject;
+  JS.AddPair('sendTo', JSSendTo);
   JS.AddPair('job',  JSArr);
 
   Result := JS.ToJSON;
@@ -152,13 +176,21 @@ begin
     if AContext <> nil then
     begin
       AContext.Connection.Socket.WriteLn(JS_ping);
-      s := AContext.Connection.Socket.ReadLn();
-      if s <> '' then Result := true;
-    end else Result := False;
+      s := AContext.Connection.Socket.ReadLn(#13, 5000);
+      if s <> '' then Result := true else
+      begin
+        AContext.Connection.Socket.Close;
+        AContext := nil;
+      end;
+    end else
+    begin
+      Result := False;
+    end;
 
   except on E: Exception do
     begin
-      Result := False;
+      Result    := False;
+      AContext  := nil;
     end;
   end;
 end;
@@ -184,13 +216,13 @@ var
 //  Agent_ : TAgentConf;
 begin
   CS        := TCriticalSection.Create;
-  AllAgents := TDictionary<integer, TAgent>.Create();
+  fAllAgents := TDictionary<integer, TAgent>.Create();
   Agents    := MySQL_Agents_GetAllAgents();
   MySQL_GetJobsDate_ALL();
   for I := 0 to Length(Agents)-1 do
   begin
     SocketConf := TAgent.Create(Agents[i].agentID, Agents[i]);
-    AllAgents.Add(Agents[i].agentID, SocketConf);
+    fAllAgents.Add(Agents[i].agentID, SocketConf);
   end;
   inherited Create(false);
 end;
@@ -203,16 +235,12 @@ begin
   try
     CS.Enter;
 //    if Agent := AllAgents.ExtractPair(agentID), Agent) then
-    Agent := AllAgents.Items[agentID];
+    Agent := fAllAgents.Items[agentID];
     begin
       if Agent.AContext <> nil then
       begin
         try
-//        Agent.AContext.Connection.Socket.WriteLn('pint');
-//          s := Agent.AContext.Connection.Socket.ReadLn(#13, 5000, 1024);
-//          Agent.AContext.Connection.Connected;
-          Result := True;
-//        äîïèñàòü ïðîâåðêó ñâÿçè.
+          Result := Agent.IsConnect;
         except on E: Exception do
           begin
             Agent.AContext := nil;
@@ -233,11 +261,11 @@ function TAllAgents.AddNewSocket(agentID : integer; AContext : TIdContext) : TAg
 begin
   try
     CS.Enter;
-    if AllAgents.TryGetValue(agentID, result) = True then
+    if fAllAgents.TryGetValue(agentID, result) = True then
     begin
       result.AContext         := AContext;
     //  result.Agent.LastOnline := Now;
-   //   MySQL_Agent_SetOnline(agentID, result.Agent.LastOnline, true);
+      MySQL_Agent_SetOnline(agentID, result.Agent.LastOnline, true);
     end;
   finally
     CS.Leave;
@@ -248,17 +276,22 @@ function TAllAgents.GetSocketConf(agentID : integer; out AgentConf : TAgent) : b
 begin
   try
     CS.Enter;
-    result := AllAgents.TryGetValue(agentID, AgentConf);
+    result := fAllAgents.TryGetValue(agentID, AgentConf);
   finally
     CS.Leave;
   end;
 end;
 
-function TAllAgents.delete(agentID : integer): Integer;
+function TAllAgents.AgentDisconnect(agentID : integer): Integer;
+var
+  Agent : TAgent;
 begin
   try
     CS.Enter;
-      if AllAgents.ContainsKey(agentID) then AllAgents.Remove(agentID);
+      Agent := fAllAgents.Items[agentID];
+      Agent.fContext := nil;
+      Agent.UpdateAContext(nil);
+      MySQL_Agent_SetOnline(agentID, Now, false);
   finally
     CS.Leave;
   end;
@@ -269,7 +302,7 @@ function TAllAgents.AddNewTask(Job : TJob): integer;
 var
   Agent : TAgent;
 begin
-  Agent := AllAgents.Items[Job.AgentID];
+  Agent := fAllAgents.Items[Job.AgentID];
   Agent.AddNewTask(Job);
 end;
 

@@ -21,7 +21,7 @@ function MySQL_GetTagsListFromJob_HTML(JobID : integer) : string;
 function MySQL_GetTagsListHTML() : string;
 function MySQL_CreateNextJob(JobId, AgentID : Integer; NextDate : TDateTime): Integer;
 function MySQL_CloseJonb(ID : integer; JobResult : integer) : integer;
-function MySQL_GetNewJob(): Integer;
+function MySQL_GetNewJob1(): Integer;
 function Mysql_GetAgentsIdFromTags(tags : string): TArray<integer>;
 function MySQL_UpdateJobDate(id : Integer; JobResult : string): Integer;
 
@@ -32,7 +32,7 @@ function Mysql_GetANDCheckHTTPSession(AuthToken, RemoteIP, UserAgent : string): 
 function MySQL_Agents_GetAllAgents(): TAAgentConf;
 function MySQL_Agents_GetAllAgents_HTML(): string;
 
-
+function MySQL_SendTo_getConfig(SendTo_ID : integer): string;
 
 
 implementation
@@ -507,7 +507,7 @@ begin
   end;
 end;
 
-function MySQL_GetNewJob(): Integer;
+function MySQL_GetNewJob1(): Integer;
 var
   query   : TSQL;
   i       : Integer;
@@ -524,10 +524,11 @@ begin
     job.JobName     := query.FieldByName('JobName').AsString;
 
     job.rules       := query.FieldByName('rules').AsString;
+    job.sendTo      := query.FieldByName('sendTo').AsInteger;
     job.crone       := query.FieldByName('crone').AsString;
     job.Tags        := query.FieldByName('Tags').AsString;
     job.active      := query.FieldByName('active').AsInteger;
-    job.NextJobTime := MySQL_GetJobsDate(job.ID);
+  //  job.NextJobTime := MySQL_GetJobsDate(job.ID);
     jobsThread.AddJob(job);
   //  sender as TjobsThread.AddJob(job);
   end;
@@ -723,6 +724,25 @@ begin
     query.Free;
   end;
 end;
+
+
+
+
+function MySQL_SendTo_getConfig(SendTo_ID : integer): string;
+var
+  query   : TSQL;
+begin
+  query := SQL.Create_SQL;
+  query.SQL.Text := 'SELECT * FROM `sendTo` WHERE `idSend` = ' + SendTo_ID.ToString;
+  query.Active := True;
+  if query.RecordCount = 1 then
+  begin
+    query.RecNo     := 1;
+    Result          := query.FieldByName('sendConfig').AsString;
+  end;
+  query.Free;
+end;
+
 
 end.
 

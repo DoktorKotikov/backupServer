@@ -141,7 +141,7 @@ var
   Job : Tjob;
 begin
   try
-    MySQL_GetNewJob();
+    MySQL_GetNewJob1();
     AgentsId  := TArray<integer>.create();
     repeat
       needSleep := True;

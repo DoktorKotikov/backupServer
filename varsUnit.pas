@@ -20,6 +20,7 @@ type
     ID      : integer;
     JobName : string;
     rules   : string;
+    sendTo  : Integer;
     crone   : string;
     Tags    : string;
     active  : Integer;

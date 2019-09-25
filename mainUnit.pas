@@ -278,10 +278,11 @@ begin
         if AllAgents.ÑheckAlreadyConnected(ID) = false then
         begin
           js.AddPair('result', TJSONNumber.Create(0));
-          Agent    := AllAgents.AddNewSocket(ID, AContext);
-          MySQL_Agent_SetOnline(Agent.agent_Id, Now, true);
           AContext.Connection.Socket.WriteLn(js.ToJSON);
-          AContext.Data := Agent;
+          Agent    := AllAgents.AddNewSocket(ID, AContext);
+       //   MySQL_Agent_SetOnline(Agent.agent_Id, Now, true);
+
+         // AContext.Data := Agent;
         end else
         begin
           js.AddPair('result', TJSONNumber.Create(1000));
@@ -314,8 +315,7 @@ begin
   if AContext.Data <> nil then
   begin
     Agent := TAgent(AContext.Data);
-    AllAgents.delete(Agent.Agent.agentID);
-    MySQL_Agent_SetOnline(Agent.Agent.agentID, Now, false);
+    AllAgents.AgentDisconnect(Agent.Agent.agentID);
   end;
 end;
 
