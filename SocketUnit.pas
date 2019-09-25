@@ -80,9 +80,14 @@ begin
   try
     CS_Agent.Enter;
     fContext := AContext_;
+    if AContext_ = nil then log.SaveLog('UpdateAContext new NIL');
+
     if AContext_ <> nil then
     begin
       fContext.Data  := Self;
+    end else
+    begin
+      log.SaveLog('AContext = nil');
     end;
     Event.SetEvent;
   finally
@@ -147,15 +152,19 @@ begin
   repeat
     Event.WaitFor(INFINITE);
     Event.ResetEvent;
-    if IsConnect then
+    log.SaveLog('Agent '+ Self.agent_Id.ToString + ' Execute new Event ');
+    if fContext <> nil then
     begin
-      if fContext <> nil then
+      if IsConnect then
       begin
         try
           CS_Agent.Enter;
-
-          Self.fContext.Connection.Socket.WriteLn(JobToJS(Quere.Peek));
+          s := JobToJS(Quere.Peek);
+          log.SaveLog('Agent '+ Self.agent_Id.ToString + ' WriteLn :'+ s);
+          Self.fContext.Connection.Socket.WriteLn(s);
           s := Self.fContext.Connection.Socket.ReadLn();
+          log.SaveLog('Agent '+ Self.agent_Id.ToString + ' ReadLn :'+ s);
+
           JobResult(s, Quere.Extract);
         finally
           CS_Agent.Leave;
@@ -175,12 +184,19 @@ begin
   try
     if AContext <> nil then
     begin
+      log.SaveLog('Agent '+ Self.agent_Id.ToString + ' ' + JS_ping);
       AContext.Connection.Socket.WriteLn(JS_ping);
-      s := AContext.Connection.Socket.ReadLn(#13, 5000);
-      if s <> '' then Result := true else
+      s := AContext.Connection.Socket.ReadLn(#10, 5000).Trim;
+      log.SaveLog('Agent '+ Self.agent_Id.ToString + ' response : "' + s+'"');
+      if s <> '-1' then
       begin
+        Result := true;
+      end else
+      begin
+        log.SaveLog('Agent Connection.Socket.Close');
         AContext.Connection.Socket.Close;
         AContext := nil;
+        Result := False;
       end;
     end else
     begin
@@ -189,6 +205,7 @@ begin
 
   except on E: Exception do
     begin
+      log.SaveLog('Agent '+ Self.agent_Id.ToString + ' TAgent.IsConnect Exception : ' + E.Message);
       Result    := False;
       AContext  := nil;
     end;
@@ -289,7 +306,7 @@ begin
   try
     CS.Enter;
       Agent := fAllAgents.Items[agentID];
-      Agent.fContext := nil;
+    //  Agent.fContext := nil;
       Agent.UpdateAContext(nil);
       MySQL_Agent_SetOnline(agentID, Now, false);
   finally

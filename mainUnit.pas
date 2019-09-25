@@ -62,7 +62,7 @@ var
   Agent       : TAgent;
   result      : string;
 begin
-  if jobsThread.GetJob_toDo(Job) = True then
+  {if jobsThread.GetJob_toDo(Job) = True then
   begin
     log.SaveLog('Read New Job from Quere');
     JS_JobResult  := TJsonObject.create;
@@ -94,7 +94,7 @@ begin
         end;
       end;
     end;
-  end;
+  end;   }
 end;
 
 
@@ -261,7 +261,7 @@ var
 begin
   try
     log.SaveLog('new connect ' + AContext.Connection.Socket.Binding.PeerIP);
-    msg := AContext.Connection.Socket.ReadLn(#13, 5000, 1024);
+    msg := AContext.Connection.Socket.ReadLn(#10, 5000, 1024);
 
   except on E: Exception do
     begin
@@ -272,22 +272,22 @@ begin
   begin
     if Check_AgentLogin(msg, ID) = 0 then
     begin
+      log.SaveLog('authorization successful AgentID ' + ID.ToString);
       js :=  TJSONObject.Create;
       try
         js.AddPair('action', 'login');
         if AllAgents.ÑheckAlreadyConnected(ID) = false then
         begin
           js.AddPair('result', TJSONNumber.Create(0));
+          log.SaveLog(js.ToJSON);
           AContext.Connection.Socket.WriteLn(js.ToJSON);
           Agent    := AllAgents.AddNewSocket(ID, AContext);
-       //   MySQL_Agent_SetOnline(Agent.agent_Id, Now, true);
-
-         // AContext.Data := Agent;
         end else
         begin
           js.AddPair('result', TJSONNumber.Create(1000));
           js.AddPair('error', 'Error AlreadyConnected');
           Sleep(5000);
+          log.SaveLog('Agent Already Connected Socket.Close');
           AContext.Connection.Socket.WriteLn(js.ToJSON);
           AContext.Connection.Socket.InputBuffer.Clear;
           AContext.Connection.Socket.Close;
@@ -297,11 +297,13 @@ begin
       end;
     end else
     begin
+      log.SaveLog('authorization error Socket.Close');
       AContext.Connection.Socket.InputBuffer.Clear;
       AContext.Connection.Socket.Close;
     end;
   end else
   begin
+    log.SaveLog('authorization error Socket.Close');
     AContext.Connection.Socket.InputBuffer.Clear;
     AContext.Connection.Socket.Close;
   end;
@@ -322,6 +324,7 @@ end;
 procedure TDataModule2.IdTCPServer1Exception(AContext: TIdContext;
   AException: Exception);
 begin
+  log.SaveLog('TCPServer Exception ' + AException.Message);
   AException.Free;
 end;
 
@@ -335,7 +338,7 @@ var
   test    : Byte;
   HashMD5 : THashMD5;
 begin
-  msg := '';
+{  msg := '';
   try
  //   log.SaveLog(AContext.Connection.Socket.Binding.PeerIP);
 
@@ -343,7 +346,7 @@ begin
     begin
       Agent := TAgent(AContext.Data);
       Agent.lastOnline := Now;
-      msg := AContext.Connection.Socket.ReadLn(#13, 5000, 5120);
+      msg := AContext.Connection.Socket.ReadLn(#10, 5000, 5120);
       if msg <> '' then
       if newMessage(msg, Agent) = 0 then
       begin
@@ -365,7 +368,7 @@ begin
       AContext.Connection.Socket.InputBuffer.Clear;
       AContext.Connection.Socket.Close;
     end;
-  end;
+  end;    }
 end;
 
 end.
