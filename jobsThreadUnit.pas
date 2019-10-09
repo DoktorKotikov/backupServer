@@ -165,7 +165,7 @@ begin
                   CS.Enter;
                     Job.job_scheduler := jobs[i];
                     Job.AgentID       := AgentsId[j];
-                    Job.result        := False;
+                    Job.result        := 0;
                    // Quere.Enqueue(Job);
                     AllAgents.AddNewTask(Job);
                     Log.SaveLog('New Job ADD in Quere');

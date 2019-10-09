@@ -262,6 +262,7 @@ begin
   try
     log.SaveLog('new connect ' + AContext.Connection.Socket.Binding.PeerIP);
     msg := AContext.Connection.Socket.ReadLn(#10, 5000, 1024);
+    log.SaveLog('Agent nil <<== ' + msg);
 
   except on E: Exception do
     begin
@@ -279,7 +280,7 @@ begin
         if AllAgents.ÑheckAlreadyConnected(ID) = false then
         begin
           js.AddPair('result', TJSONNumber.Create(0));
-          log.SaveLog(js.ToJSON);
+          log.SaveLog('Agent ' + ID.ToString + ' ==>> ' + js.ToJSON);
           AContext.Connection.Socket.WriteLn(js.ToJSON);
           Agent    := AllAgents.AddNewSocket(ID, AContext);
         end else
@@ -288,6 +289,7 @@ begin
           js.AddPair('error', 'Error AlreadyConnected');
           Sleep(5000);
           log.SaveLog('Agent Already Connected Socket.Close');
+          log.SaveLog('Agent ' + ID.ToString + ' ==>> ' +js.ToJSON);
           AContext.Connection.Socket.WriteLn(js.ToJSON);
           AContext.Connection.Socket.InputBuffer.Clear;
           AContext.Connection.Socket.Close;
@@ -317,6 +319,7 @@ begin
   if AContext.Data <> nil then
   begin
     Agent := TAgent(AContext.Data);
+    AContext.Data := nil;
     AllAgents.AgentDisconnect(Agent.Agent.agentID);
   end;
 end;
@@ -338,6 +341,9 @@ var
   test    : Byte;
   HashMD5 : THashMD5;
 begin
+    sleep(5000);
+//  msg := AContext.Connection.Socket.ReadLn();
+//  log.SaveLog('!!!!!!!!!!!!!!!!!!!!!!!!!! ' + msg);
 {  msg := '';
   try
  //   log.SaveLog(AContext.Connection.Socket.Binding.PeerIP);

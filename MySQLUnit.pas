@@ -14,6 +14,7 @@ function MySQL_Agent_SetOfflineALL(): Integer;
 function MySQL_Agent_SetOnline(AgentID : integer; lastOnline : TDateTime; Online : boolean): Integer;
 function MySQL_Agent_CheckLogin(key, ip, name : string; out ID: integer): Integer;
 
+function MySQL_Get_JobsDate_GetNewJobfromAgent(AgentID : integer): TAJob;
 function MySQL_GetJobsDate_ALL(): TAJob;
 function MySQL_GetJob_HTML(jobID : integer; out tags : string; out name : string; out crone : string; out rules : string; out active : integer): integer;
 function MySQL_GetAgentTags(agentId : integer): string;
@@ -401,6 +402,41 @@ begin
   query.Free;
 end;
 
+function MySQL_Get_JobsDate_GetNewJobfromAgent(AgentID : integer): TAJob;
+var
+  query   : TSQL;
+  i       : Integer;
+begin
+  query := nil;
+  try
+    query := SQL.Create_SQL;
+    query.SQL.Text  := 'SELECT * FROM `jobsDate` join `jobs` ON (`jobsDate`.jobID = `jobs`.jobID)';
+    query.SQL.Add('WHERE `jobsDate`.`Status` IN ("new") AND `AgentID` = ' + AgentID.ToString);
+    query.SQL.Add('ORDER BY `jobsDate`.`Date` asc');
+    query.Active    := True;
+    query.FetchAll;
+    SetLength(Result, query.RecordCount);
+    for i := 1 to query.RecordCount do
+    begin
+      query.RecNo    := i;
+      Result[i-1].job_schedulerID         := query.FieldByName('ID').AsInteger;
+      Result[i-1].result                  := query.FieldByName('result').AsInteger;
+      Result[i-1].AgentID                 := query.FieldByName('AgentID').AsInteger;
+
+      Result[i-1].job_scheduler.ID        := query.FieldByName('ID').AsInteger;
+      Result[i-1].job_scheduler.JobName   := query.FieldByName('JobName').AsString;
+      Result[i-1].job_scheduler.rules     := query.FieldByName('rules').AsString;
+      Result[i-1].job_scheduler.crone     := query.FieldByName('crone').AsString;
+      Result[i-1].job_scheduler.Tags      := query.FieldByName('Tags').AsString;
+      Result[i-1].job_scheduler.active    := query.FieldByName('active').AsInteger;
+    end;
+
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
+
+
 function MySQL_GetJobsDate_ALL(): TAJob;
 var
   query   : TSQL;
@@ -501,7 +537,7 @@ begin
   query := nil;
   try
     query := SQL.Create_SQL;
-    query.ExecSQL('UPDATE `jobsDate` SET `Status` = "close" `result` = '+JobResult.ToString+' WHERE `ID` = ' + ID.ToString)
+    query.ExecSQL('UPDATE `jobsDate` SET `Status` = "close", `result` = '+JobResult.ToString+' WHERE `ID` = ' + ID.ToString)
   finally
     if query <> nil then query.Free;
   end;

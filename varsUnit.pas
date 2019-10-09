@@ -31,7 +31,7 @@ type
     job_scheduler : Tjob_scheduler;
     job_schedulerID : integer;
     AgentID : integer;
-    result  : boolean;
+    result  : integer;
   end;
 
   TAJob = array of TJob;

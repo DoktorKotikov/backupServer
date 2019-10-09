@@ -137,7 +137,10 @@ begin
   begin
     if JS.TryGetValue('result',  resltJob) then
     begin
-      MySQL_CloseJonb(job.job_scheduler.ID, resltJob);
+      MySQL_CloseJonb(job.job_schedulerID, resltJob);
+    end else
+    begin
+      MySQL_CloseJonb(job.job_schedulerID, 10001);
     end;
   end;
 end;
@@ -155,19 +158,24 @@ begin
     log.SaveLog('Agent '+ Self.agent_Id.ToString + ' Execute new Event ');
     if fContext <> nil then
     begin
-      if IsConnect then
+      while Quere.Count > 0 do
       begin
-        try
-          CS_Agent.Enter;
-          s := JobToJS(Quere.Peek);
-          log.SaveLog('Agent '+ Self.agent_Id.ToString + ' WriteLn :'+ s);
-          Self.fContext.Connection.Socket.WriteLn(s);
-          s := Self.fContext.Connection.Socket.ReadLn();
-          log.SaveLog('Agent '+ Self.agent_Id.ToString + ' ReadLn :'+ s);
+        if IsConnect then
+        begin
+          try
+            CS_Agent.Enter;
+            s := JobToJS(Quere.Peek);
+            log.SaveLog('Agent '+ Self.agent_Id.ToString + ' ==>> ' +s);
+            Self.fContext.Connection.Socket.WriteLn(s);
+            s := Self.fContext.Connection.Socket.ReadLn({#10, 5000, 1024});
+            log.SaveLog('Agent '+ Self.agent_Id.ToString + ' <<== ' +s);
+  //          s := Self.fContext.Connection.Socket.ReadLn(#10, 5000, 1024);
+  //          log.SaveLog('Agent '+ Self.agent_Id.ToString + ' <<== ' +s);
 
-          JobResult(s, Quere.Extract);
-        finally
-          CS_Agent.Leave;
+            JobResult(s, Quere.Extract);
+          finally
+            CS_Agent.Leave;
+          end;
         end;
       end;
     end;
@@ -183,12 +191,13 @@ begin
   Result := False;
   try
     if AContext <> nil then
+   // if assigned(AContext) then
     begin
-      log.SaveLog('Agent '+ Self.agent_Id.ToString + ' ' + JS_ping);
+      log.SaveLog('Agent '+ Self.agent_Id.ToString + ' ==>> ' + JS_ping);
       AContext.Connection.Socket.WriteLn(JS_ping);
       s := AContext.Connection.Socket.ReadLn(#10, 5000).Trim;
-      log.SaveLog('Agent '+ Self.agent_Id.ToString + ' response : "' + s+'"');
-      if s <> '-1' then
+      log.SaveLog('Agent '+ Self.agent_Id.ToString + ' <<== ' +s);
+      if s <> '' then
       begin
         Result := true;
       end else
@@ -229,7 +238,9 @@ constructor TAllAgents.Create();
 var
   Agents : TAAgentConf;
   i : Integer;
-  SocketConf :  TAgent;
+  SocketConf : TAgent;
+  Jobs       : TAJob;
+  j: Integer;
 //  Agent_ : TAgentConf;
 begin
   CS        := TCriticalSection.Create;
@@ -240,7 +251,16 @@ begin
   begin
     SocketConf := TAgent.Create(Agents[i].agentID, Agents[i]);
     fAllAgents.Add(Agents[i].agentID, SocketConf);
+    Jobs := MySQL_Get_JobsDate_GetNewJobfromAgent(Agents[i].agentID);
+    for j := 0 to Length(Jobs)-1 do
+    begin
+      SocketConf.AddNewTask(Jobs[j]);
+    end;
+
+
   end;
+
+
   inherited Create(false);
 end;
 
