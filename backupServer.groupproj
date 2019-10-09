@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{FD7947BA-A032-4F39-9DB8-8CC94A2E0092}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="serverBackup.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="serverBackup_daemon.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="serverBackup">
+        <MSBuild Projects="serverBackup.dproj"/>
+    </Target>
+    <Target Name="serverBackup:Clean">
+        <MSBuild Projects="serverBackup.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="serverBackup:Make">
+        <MSBuild Projects="serverBackup.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="serverBackup_daemon">
+        <MSBuild Projects="serverBackup_daemon.dproj"/>
+    </Target>
+    <Target Name="serverBackup_daemon:Clean">
+        <MSBuild Projects="serverBackup_daemon.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="serverBackup_daemon:Make">
+        <MSBuild Projects="serverBackup_daemon.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="serverBackup;serverBackup_daemon"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="serverBackup:Clean;serverBackup_daemon:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="serverBackup:Make;serverBackup_daemon:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
