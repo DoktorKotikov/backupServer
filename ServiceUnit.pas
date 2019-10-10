@@ -8,6 +8,7 @@ uses
 type
   TBackup4you = class(TService)
     procedure ServiceCreate(Sender: TObject);
+    procedure ServiceExecute(Sender: TService);
   private
     { Private declarations }
   public
@@ -37,6 +38,17 @@ end;
 procedure TBackup4you.ServiceCreate(Sender: TObject);
 begin
   DataModule2:= TDataModule2.Create(nil);
+end;
+
+procedure TBackup4you.ServiceExecute(Sender: TService);
+begin
+  While terminated = false  do
+  begin
+
+    WaitMessage;
+
+    ServiceThread.ProcessRequests(False);
+  end;
 end;
 
 end.

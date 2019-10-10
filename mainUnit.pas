@@ -21,8 +21,6 @@ type
     IdFTPServer1: TIdFTPServer;
     procedure DataModuleCreate(Sender: TObject);
     procedure IdTCPServer1Execute(AContext: TIdContext);
-
-    procedure Check_NewJob();
     procedure IdHTTPServer1CommandGet(AContext: TIdContext;
       ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
     procedure IdFTPServer1UserLogin(ASender: TIdFTPServerContext;
@@ -47,56 +45,6 @@ implementation
 {%CLASSGROUP 'System.Classes.TPersistent'}
 
 {$R *.dfm}
-
-procedure TDataModule2.Check_NewJob();
-var
-  i : Integer;
-//  SocketConf : TSocketConf;
-  Job           : Tjob;
-  JS_JobResult  : TJSONObject;
-  JS_JobsArray  : TJSONArray;
-
-  FTPSocketConf : TFTPClient;
-  JS : TJSONObject;
-  JSArr : TJSONArray;
-  Agent       : TAgent;
-  result      : string;
-begin
-  {if jobsThread.GetJob_toDo(Job) = True then
-  begin
-    log.SaveLog('Read New Job from Quere');
-    JS_JobResult  := TJsonObject.create;
-    JS_JobsArray  := TJSONArray.Create;
-
-    JS_JobResult.AddPair('AgentID',   TJSONNumber.Create(Job.AgentID));
-    JS_JobsArray.Add(JS_JobResult);
-
-
-    JS := TJSONObject.Create;
-    JSArr := TJSONObject.ParseJSONValue(Job.job_scheduler.rules) as TJSONArray;
-
-    JS.AddPair('sendto', 'server');
-    JS.AddPair('action', 'newJob');
-
-    JS.AddPair('job',  JSArr);
-
-    if AllAgents.GetSocketConf(Job.AgentID, Agent) then
-    begin
-      try
-        if Agent.AContext <> nil then
-        begin
-          Agent.AContext.Connection.Socket.WriteLn(JS.ToJSON);
-          result := Agent.AContext.Connection.Socket.ReadLn();
-        end;
-      except on E: Exception do
-        begin
-          log.SaveLog('Error socker 1' + E.Message);
-        end;
-      end;
-    end;
-  end;   }
-end;
-
 
 procedure LoadLocalization();
 var
@@ -224,12 +172,6 @@ begin
 
   jobsThread := TjobsThread.Create;
 
-  repeat
-  //    Event.WaitFor(INFINITE);
-    Check_NewJob();
-//    Event.ResetEvent;
-    Sleep(5000);
-  until (TjobsThread_dead);
   log.SaveLog('Error TDataModule2.DataModuleCreate Main thead dead');
 //  IdTCPServer1
 end;

@@ -2,7 +2,15 @@ program serverBackup_daemon;
 
 uses
   Vcl.SvcMgr,
-  ServiceUnit in 'ServiceUnit.pas' {Service1: TService};
+  ServiceUnit in 'ServiceUnit.pas' {Backup4you: TService},
+  FTPSUnit in 'FTPSUnit.pas',
+  HtmlUnit in 'HtmlUnit.pas',
+  jobsThreadUnit in 'jobsThreadUnit.pas',
+  mainUnit in 'mainUnit.pas' {DataModule2: TDataModule},
+  messageExecute in 'messageExecute.pas',
+  MySQLUnit in 'MySQLUnit.pas',
+  SocketUnit in 'SocketUnit.pas',
+  varsUnit in 'varsUnit.pas';
 
 {$R *.RES}
 
@@ -23,6 +31,8 @@ begin
   //
   if not Application.DelayInitialize or Application.Installing then
     Application.Initialize;
-  Application.CreateForm(TService1, Service1);
+  Application.CreateForm(TBackup4you, Backup4you);
+  Application.CreateForm(TDataModule2, DataModule2);
+  Application.CreateForm(TDataModule2, DataModule2);
   Application.Run;
 end.

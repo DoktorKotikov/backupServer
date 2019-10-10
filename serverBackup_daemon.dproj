@@ -5,7 +5,7 @@
         <FrameworkType>None</FrameworkType>
         <MainSource>serverBackup_daemon.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Application</AppType>
@@ -115,10 +115,22 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="ServiceUnit.pas">
-            <Form>Service1</Form>
+            <Form>Backup4you</Form>
             <FormType>dfm</FormType>
             <DesignClass>TService</DesignClass>
         </DCCReference>
+        <DCCReference Include="FTPSUnit.pas"/>
+        <DCCReference Include="HtmlUnit.pas"/>
+        <DCCReference Include="jobsThreadUnit.pas"/>
+        <DCCReference Include="mainUnit.pas">
+            <Form>DataModule2</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="messageExecute.pas"/>
+        <DCCReference Include="MySQLUnit.pas"/>
+        <DCCReference Include="SocketUnit.pas"/>
+        <DCCReference Include="varsUnit.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -162,6 +174,12 @@
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="Win32\Debug\serverBackup_daemon.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>serverBackup_daemon.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="Win32\Release\serverBackup_daemon.exe" Configuration="Release" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>serverBackup_daemon.exe</RemoteName>
                         <Overwrite>true</Overwrite>
