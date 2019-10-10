@@ -102,6 +102,8 @@ procedure TDataModule2.DataModuleCreate(Sender: TObject);
 var
  test : TSQL;
 begin
+  try
+
  // FS  := TFormatSettings.Create;
   FS  := FormatSettings;
   FS.DecimalSeparator := '.';
@@ -172,7 +174,13 @@ begin
 
   jobsThread := TjobsThread.Create;
 
-  log.SaveLog('Error TDataModule2.DataModuleCreate Main thead dead');
+  except on E: Exception do
+    begin
+      log.SaveLog('Error Create ' + E.Message);
+      raise;
+    end;
+  end;
+
 //  IdTCPServer1
 end;
 
