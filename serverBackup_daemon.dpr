@@ -32,7 +32,6 @@ begin
   if not Application.DelayInitialize or Application.Installing then
     Application.Initialize;
   Application.CreateForm(TBackup4you, Backup4you);
-  Application.CreateForm(TDataModule2, DataModule2);
-  Application.CreateForm(TDataModule2, DataModule2);
+//  Application.CreateForm(TDataModule2, DataModule2);
   Application.Run;
 end.

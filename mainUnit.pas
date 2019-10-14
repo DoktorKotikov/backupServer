@@ -104,76 +104,77 @@ var
 begin
   try
 
- // FS  := TFormatSettings.Create;
-  FS  := FormatSettings;
-  FS.DecimalSeparator := '.';
-  FS.TimeSeparator    := ':';
-  FS.LongDateFormat   := 'yyyy-mm-dd';
-  FS.ShortDateFormat  := 'yyyy-mm-dd';
-  FS.LongTimeFormat   := 'hh:nn:ss';
-  FS.ShortTimeFormat  := 'hh:nn:ss';
-  log := TLogsSaveClasses.Create();
-  MyDir         := GetCurrentDir;
-  CreateMIMEtypesTabel;
-//  Localization  := TDictionary<string,string>.Create();
-  //Localization  := TDictionary<string, TLangPage>.create;
-  Localization1 := TDictionary<string, TDictionary<string, Tlist<TLangKeyAndValue>>>.Create();
-  LoadLocalization;
-  Event         := TEvent.create;
-  HTTPini       := TConfigs.Create('HTTP.ini');
-  allFTTPs      := TFTPS_AllConnects.Create;
-  wwwpath := HTTPini.GetValue_OrSetDefoult('Server', 'path', GetCurrentDir+'\www\').AsString;
-  enableSSL := HTTPini.GetValue_OrSetDefoult('SSL', 'Secure', 'False').AsBoolean;
-  if enableSSL then
-  begin
-    IdServerIOHandlerSSLOpenSSL1.SSLOptions.CertFile := MyDir +'\key\'+ HTTPini.GetValue_OrSetDefoult('SSL', 'CertFile', '.cert').AsString;
-    IdServerIOHandlerSSLOpenSSL1.SSLOptions.KeyFile  := MyDir +'\key\'+ HTTPini.GetValue_OrSetDefoult('SSL', 'KeyFile', '.key').AsString;
-    if  FileExists(IdServerIOHandlerSSLOpenSSL1.SSLOptions.CertFile)
-    and FileExists(IdServerIOHandlerSSLOpenSSL1.SSLOptions.KeyFile) then
+   // FS  := TFormatSettings.Create;
+    FS  := FormatSettings;
+    FS.DecimalSeparator := '.';
+    FS.TimeSeparator    := ':';
+    FS.LongDateFormat   := 'yyyy-mm-dd';
+    FS.ShortDateFormat  := 'yyyy-mm-dd';
+    FS.LongTimeFormat   := 'hh:nn:ss';
+    FS.ShortTimeFormat  := 'hh:nn:ss';
+    log := TLogsSaveClasses.Create();
+    MyDir         := GetCurrentDir;
+    CreateMIMEtypesTabel;
+  //  Localization  := TDictionary<string,string>.Create();
+    //Localization  := TDictionary<string, TLangPage>.create;
+    Localization1 := TDictionary<string, TDictionary<string, Tlist<TLangKeyAndValue>>>.Create();
+    LoadLocalization;
+    Event         := TEvent.create;
+    HTTPini       := TConfigs.Create('HTTP.ini');
+    allFTTPs      := TFTPS_AllConnects.Create;
+    wwwpath   := HTTPini.GetValue_OrSetDefoult('Server', 'path', GetCurrentDir+'\www\').AsString;
+    enableSSL := HTTPini.GetValue_OrSetDefoult('SSL', 'Secure', 'False').AsBoolean;
+    if enableSSL then
     begin
-      IdHTTPServer1.IOHandler := IdServerIOHandlerSSLOpenSSL1;
-    end else
-    begin
-      log.SaveLog('Error not found CertFiles');
+      IdServerIOHandlerSSLOpenSSL1.SSLOptions.CertFile := MyDir +'\key\'+ HTTPini.GetValue_OrSetDefoult('SSL', 'CertFile', '.cert').AsString;
+      IdServerIOHandlerSSLOpenSSL1.SSLOptions.KeyFile  := MyDir +'\key\'+ HTTPini.GetValue_OrSetDefoult('SSL', 'KeyFile', '.key').AsString;
+      if  FileExists(IdServerIOHandlerSSLOpenSSL1.SSLOptions.CertFile)
+      and FileExists(IdServerIOHandlerSSLOpenSSL1.SSLOptions.KeyFile) then
+      begin
+        IdHTTPServer1.IOHandler := IdServerIOHandlerSSLOpenSSL1;
+      end else
+      begin
+        log.SaveLog('Error not found CertFiles');
+      end;
     end;
-  end;
 
 
 
-  IdHTTPServer1.DefaultPort := HTTPini.GetValue_OrSetDefoult('Server', 'port', '80').AsInteger;
-  IdHTTPServer1.Active := True;
+    IdHTTPServer1.DefaultPort := HTTPini.GetValue_OrSetDefoult('Server', 'port', '80').AsInteger;
+    IdHTTPServer1.Active := True;
 
 
-  log.SaveLog('HTTP is active. Port : ' + IdHTTPServer1.DefaultPort.ToString);
+    log.SaveLog('HTTP is active. Port : ' + IdHTTPServer1.DefaultPort.ToString);
 
-//  IdTCPServer1 := TIdTCPServer.Create();
-  ini := TConfigs.Create('config.ini');
-  SQL := TFireDAC.Create(TFireDAC.DataBaseType.Mysql,
-  ini.GetValue_OrSetDefoult('Mysql', 'IP', '127.0.0.1').AsString,
-  ini.GetValue_OrSetDefoult('Mysql', 'login', 'admin').AsString,
-  ini.GetValue_OrSetDefoult('Mysql', 'pass', '12345').AsString,
-  ini.GetValue_OrSetDefoult('Mysql', 'DB', 'backup').AsString,
-  ini.GetValue_OrSetDefoult('Mysql', 'port', '3306').AsInteger,
-  ini.GetValue_OrSetDefoult('Mysql', 'Pool_Maximum', '123').AsInteger);
+  //  IdTCPServer1 := TIdTCPServer.Create();
+    ini := TConfigs.Create('config.ini');
+    SQL := TFireDAC.Create(TFireDAC.DataBaseType.Mysql,
+    ini.GetValue_OrSetDefoult('Mysql', 'IP', '127.0.0.1').AsString,
+    ini.GetValue_OrSetDefoult('Mysql', 'login', 'admin').AsString,
+    ini.GetValue_OrSetDefoult('Mysql', 'pass', '12345').AsString,
+    ini.GetValue_OrSetDefoult('Mysql', 'DB', 'backup').AsString,
+    ini.GetValue_OrSetDefoult('Mysql', 'port', '3306').AsInteger,
+    ini.GetValue_OrSetDefoult('Mysql', 'Pool_Maximum', '123').AsInteger);
 
-  IdFTPServer1.DefaultPort      := ini.GetValue_OrSetDefoult('FTPS', 'Port',     '10023').AsInteger;
-  IdFTPServer1.DefaultDataPort  := ini.GetValue_OrSetDefoult('FTPS', 'DataPort', '10024').AsInteger;
-  IdFTPServer1.Active := True;
+    IdFTPServer1.DefaultPort      := ini.GetValue_OrSetDefoult('FTPS', 'Port',     '10023').AsInteger;
+    IdFTPServer1.DefaultDataPort  := ini.GetValue_OrSetDefoult('FTPS', 'DataPort', '10024').AsInteger;
+    IdFTPServer1.Active := True;
 
-  passSalt := ini.GetValue_OrSetDefoult('System', 'salt', GenerateSalt).AsString;
-//  ini.GetValue_OrSetDefoult('global', 'dbfileName', 'jobs').AsString,
+    passSalt := ini.GetValue_OrSetDefoult('System', 'salt', GenerateSalt).AsString;
+  //  ini.GetValue_OrSetDefoult('global', 'dbfileName', 'jobs').AsString,
 
-  MySQLUnit.CreateTables;
-  MySQL_Agent_SetOfflineALL();
+    MySQLUnit.CreateTables;
+    MySQL_Agent_SetOfflineALL();
 
-  secretKey := ini.GetValue_OrSetDefoult('socket', 'key','').AsString;
+    secretKey := ini.GetValue_OrSetDefoult('socket', 'key','').AsString;
 
-  AllAgents := TAllAgents.Create;//создаем allSockets из socketUnit
-  IdTCPServer1.DefaultPort := ini.GetValue_OrSetDefoult('socket', 'port', '80').AsInteger;
-  IdTCPServer1.Active := True;
+    AllAgents := TAllAgents.Create;//создаем allSockets из socketUnit
+    IdTCPServer1.DefaultPort := ini.GetValue_OrSetDefoult('socket', 'port', '80').AsInteger;
+    IdTCPServer1.Active := True;
 
-  jobsThread := TjobsThread.Create;
+    jobsThread := TjobsThread.Create;
 
+    log.SaveLog('Create end');
   except on E: Exception do
     begin
       log.SaveLog('Error Create ' + E.Message);
