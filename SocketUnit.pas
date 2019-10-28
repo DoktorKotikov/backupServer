@@ -10,9 +10,11 @@ type
   TAgent = class(TThread)
   private
   protected
-    CS_Agent    : TCriticalSection;
-    Quere       : tqueue<Tjob>;
-    fContext    : TIdContext;
+    CS_Agent        : TCriticalSection;
+    Quere           : tqueue<Tjob>;
+    fContext        : TIdContext;
+    fLastActivTime  : TDateTime;
+    fWStatus    : Boolean;
     procedure UpdateAContext(AContext_ : TIdContext);
     function  JobToJS(job : Tjob): string;
     function  JobResult(msg : string; job : Tjob): integer;
@@ -98,13 +100,17 @@ end;
 
 constructor TAgent.Create(agent_Id_ : integer; Agent_ : TAgentConf);
 begin
+  inherited Create(false);
+
+  fWStatus    := False;
   CS_Agent    := TCriticalSection.Create;
   Quere       := tqueue<Tjob>.Create;
   Event       := TEvent.Create;
   AContext    := nil;
   agent_Id    := agent_Id_;
   Agent       := Agent_;
-  inherited Create(false);
+  fLastActivTime  := 0;
+
  // lastOnline  := Now;
 end;
 
@@ -190,34 +196,39 @@ var
 begin
   Result := False;
   try
-    if AContext <> nil then
-   // if assigned(AContext) then
-    begin
-      log.SaveLog('Agent '+ Self.agent_Id.ToString + ' ==>> ' + JS_ping);
-      AContext.Connection.Socket.WriteLn(JS_ping);
-      s := AContext.Connection.Socket.ReadLn(#10, 5000).Trim;
-      log.SaveLog('Agent '+ Self.agent_Id.ToString + ' <<== ' +s);
-      if s <> '' then
+    CS_Agent.Enter;
+    try
+      if AContext <> nil then
+     // if assigned(AContext) then
       begin
-        Result := true;
+        log.SaveLog('Agent '+ Self.agent_Id.ToString + ' ==>> ' + JS_ping);
+        AContext.Connection.Socket.WriteLn(JS_ping);
+        s := AContext.Connection.Socket.ReadLn(#10, 5000).Trim;
+        log.SaveLog('Agent '+ Self.agent_Id.ToString + ' <<== ' +s);
+        if s <> '' then
+        begin
+          Result := true;
+        end else
+        begin
+          log.SaveLog('Agent Connection.Socket.Close');
+          AContext.Connection.Socket.Close;
+          AContext := nil;
+          Result := False;
+        end;
       end else
       begin
-        log.SaveLog('Agent Connection.Socket.Close');
-        AContext.Connection.Socket.Close;
-        AContext := nil;
         Result := False;
       end;
-    end else
-    begin
-      Result := False;
-    end;
 
-  except on E: Exception do
-    begin
-      log.SaveLog('Agent '+ Self.agent_Id.ToString + ' TAgent.IsConnect Exception : ' + E.Message);
-      Result    := False;
-      AContext  := nil;
+    except on E: Exception do
+      begin
+        log.SaveLog('Agent '+ Self.agent_Id.ToString + ' TAgent.IsConnect Exception : ' + E.Message);
+        Result    := False;
+        AContext  := nil;
+      end;
     end;
+  finally
+    CS_Agent.Leave;
   end;
 end;
 

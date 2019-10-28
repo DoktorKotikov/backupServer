@@ -196,10 +196,12 @@ end;
 
 constructor TjobsThread.Create();
 begin
+  inherited Create(false);
+
   CS    := TCriticalSection.Create;
   Quere := tqueue<Tjob>.Create;
 //  inherited Create();
-  inherited Create(false);
+
 end;
 
 procedure TjobsThread.AddJob(job : Tjob_scheduler);

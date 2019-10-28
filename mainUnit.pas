@@ -293,7 +293,7 @@ var
   HashMD5 : THashMD5;
 begin
     sleep(5000);
-//  msg := AContext.Connection.Socket.ReadLn();
+ //   msg := AContext.Connection.Socket.ReadLn();
 //  log.SaveLog('!!!!!!!!!!!!!!!!!!!!!!!!!! ' + msg);
 {  msg := '';
   try
