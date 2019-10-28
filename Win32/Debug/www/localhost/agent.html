@@ -54,10 +54,11 @@
                             </div>
                             <div class="form-inputs">
                                 <div class="form-row">
-                                    <label for="first-field">Поле с надписью</label>
-                                    <input type="text" id="first-field" class="form-control"
-                                        placeholder="Введите что-нибудь">
-
+                                    <label for="multiselecta">Список</label>
+                                    <select id="multiselecta" name="list[]" multiple autocomplete="off">
+                                        <option data-placeholder="true"></option>
+                                        [All_tagsList]
+                                    </select>
                                 </div>
                             </div>
 
@@ -73,3 +74,14 @@
 </body>
 
 </html>
+<script src="https://code.jquery.com/jquery-3.4.1.min.js"
+    integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+<script src="assets/js/slimselect.min.js"></script>
+<script>
+    new SlimSelect({
+        select: '#multiselecta',
+        placeholder: 'Выбери что-нибудь',
+        showSearch: false,
+        allowDeselect: true
+    });
+</script>
