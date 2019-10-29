@@ -150,6 +150,10 @@ ul {
   width: 320px;
 }
 
+.sidebar a.btn:hover {
+  color: #fff;
+}
+
 .sidebar-inner,
 .content {
   padding: 15px;
