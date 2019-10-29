@@ -6,6 +6,12 @@ uses System.SysUtils, myconfig.ini, myconfig.Logs, FireDAC, System.SyncObjs, Sys
 
 
 type
+  TTagIDName = record
+    tagID : integer;
+    Name  : string;
+  end;
+
+
   TAgentConf = record
     agentID     : integer;
     Name        : string;

@@ -270,6 +270,8 @@ var
   crone   : string;
   rules   : string;
   active  : integer;
+
+  agent_name : string;
 begin
  // crone := TIdUri.URLEncode('lê');
 
@@ -282,8 +284,13 @@ begin
   end;
 
   Result := StringReplace(Result, '[BackupServer_TASCkList]',  jobsThread.getAllJobs_HTML, [rfReplaceAll]);
-  Result := StringReplace(Result, '[socketConfTable_Active]',  MySQL_Agents_GetAllAgents_HTML, [rfReplaceAll]);
-  if Params.IndexOf('jobnumber') <> 0 then
+  Result := StringReplace(Result, '[socketConfTable_Active]',  allAgents.GetAllAgents_HTML, [rfReplaceAll]);
+
+ log.SaveLog(Params.Text +' '+ Params.IndexOfName('agent_id').ToString+' '+ Params.IndexOfName('agent12_id').ToString);
+ //Params.IndexOfName()
+
+
+  if Params.IndexOfName('jobnumber') <> -1 then
   begin
     if TryStrToInt(Params.Values['jobnumber'], tempInt) = true then
     begin
@@ -303,6 +310,27 @@ begin
       else Result := StringReplace(Result, '[jobe_Active]', '', [rfReplaceAll]);
 
 
+    end;
+  end else
+  if Params.IndexOfName('agent_id') <> -1 then
+  begin
+    if TryStrToInt(Params.Values['agent_id'], tempInt) = true then
+    begin
+
+      Result := StringReplace(Result, '[All_tagsList]', MySQL_GetTagsListFromAgent_HTML(tempInt), [rfReplaceAll]);
+
+      MySQL_Agent_GetAgentHTML(tempInt, agent_name);
+
+      Result := StringReplace(Result, '[agent_name]',  agent_name, [rfReplaceAll]);
+     { Result := StringReplace(Result, '[Job_tagsList]',  JobTags, [rfReplaceAll]);
+      Result := StringReplace(Result, '[Job_Name]',  jobName, [rfReplaceAll]);
+
+      Result := StringReplace(Result, '[jobe_Cron]',  crone, [rfReplaceAll]);
+      Result := StringReplace(Result, '[jobe_Rules]',  rules, [rfReplaceAll]);
+      if active = 0
+      then Result := StringReplace(Result, '[jobe_Active]', 'checked', [rfReplaceAll])
+      else Result := StringReplace(Result, '[jobe_Active]', '', [rfReplaceAll]);
+              }
     end;
   end;
 
@@ -328,6 +356,41 @@ begin
 end;
 
 
+
+function POSTData_(ARequestInfo: TIdHTTPRequestInfo): Integer;
+var
+  i : integer;
+
+  agent_id  : integer;
+  AgentName : string;
+  tegs :  TArray<integer>;
+begin
+//  log.SaveLog(ARequestInfo.Document +' '+ARequestInfo.URI);
+  ARequestInfo.URI.Trim;
+  if ARequestInfo.URI = '/agent.html'  then
+  begin
+    SetLength(tegs, 0);
+    for I := 0 to ARequestInfo.Params.Count-1 do
+    begin
+      if ARequestInfo.Params.Names[i] = 'agent_id' then TryStrToInt(ARequestInfo.Params.ValueFromIndex[i], agent_id);
+      if ARequestInfo.Params.Names[i] = 'Name'     then AgentName := ARequestInfo.Params.ValueFromIndex[i];
+
+      if ARequestInfo.Params.Names[i] = 'list[]'     then
+      begin
+        SetLength(tegs, Length(tegs)+1);
+        TryStrToInt(ARequestInfo.Params.ValueFromIndex[i], tegs[Length(tegs)-1]);
+      end;
+
+
+
+
+    end;
+    allAgents.Agent_AddorUpdate(agent_id, AgentName, tegs);
+
+  end;
+
+
+end;
 
 
 function GetHTML(ARequestInfo: TIdHTTPRequestInfo; {Param, URL, Host : string; }var AResponseInfo: TIdHTTPResponseInfo): string;
@@ -367,6 +430,12 @@ begin
       log.SaveLog(ARequestInfo.Params.Text);
      // if ARequestInfo.Params.IndexOfName('js_data') <> -1
      //   then PostJS(ARequestInfo.Params.Values['js_data']);
+
+
+      if ARequestInfo.Command = 'POST' then
+      begin
+        POSTData_(ARequestInfo);
+      end;
 
 
       filename := wwwpath + Host + RequestPage;

@@ -8,17 +8,22 @@ procedure CreateTables() ;
 
 function MySQL_JobSave(js : TJSONObject): Integer;
 
+function MySQL_Agent_Update(Agent_id : Integer; agentName : string; Agent_Tags : TArray<Integer>): Integer;
+function MySQL_Agent_Add(Agent_id : Integer; agentName : string; Agent_Tags : TArray<Integer>): Integer;
+function MySQL_Agent_GetAgentHTML(Agent_ID : integer; out NAME : string): string;
 function MySQL_Agent_GetAgentsIDFromJobID(JobID : Integer; out AgentsId  : TArray<integer>): Boolean;
 function MySQL_Agent_GetData(name : string; out pass : string; out TAGS : string; out AgentID : integer): boolean;
 function MySQL_Agent_SetOfflineALL(): Integer;
 function MySQL_Agent_SetOnline(AgentID : integer; lastOnline : TDateTime; Online : boolean): Integer;
 function MySQL_Agent_CheckLogin(key, ip, name : string; out ID: integer): Integer;
+function MySQL_GetAgentTags(agentId : integer): string;
 
 function MySQL_Get_JobsDate_GetNewJobfromAgent(AgentID : integer): TAJob;
 function MySQL_GetJobsDate_ALL(): TAJob;
 function MySQL_GetJob_HTML(jobID : integer; out tags : string; out name : string; out crone : string; out rules : string; out active : integer): integer;
-function MySQL_GetAgentTags(agentId : integer): string;
+function MySQL_GetTagsListFromAgent_HTML(Agent_ID : integer) : string;
 function MySQL_GetTagsListFromJob_HTML(JobID : integer) : string;
+function MySQL_GetTagsList_FromTagIDList(IDtags : TArray<integer>) : TArray<TTagIDName>;
 function MySQL_GetTagsListHTML() : string;
 function MySQL_CreateNextJob(JobId, AgentID : Integer; NextDate : TDateTime): Integer;
 function MySQL_CloseJonb(ID : integer; JobResult : integer) : integer;
@@ -30,8 +35,9 @@ function MySQL_CheckLoginPass(Login, pass : string) : Boolean;
 function MySQL_ADDHTTPSession(Login, RemoteIP, UserAgent : string): string;
 function Mysql_GetANDCheckHTTPSession(AuthToken, RemoteIP, UserAgent : string): Boolean;
 
+function MySQL_GetAgentTagsFromID(agentID : integer): TArray<TTagIDName>;
 function MySQL_Agents_GetAllAgents(): TAAgentConf;
-function MySQL_Agents_GetAllAgents_HTML(): string;
+//function MySQL_Agents_GetAllAgents_HTML(): string;
 
 function MySQL_SendTo_getConfig(SendTo_ID : integer): string;
 
@@ -174,6 +180,112 @@ begin
   end;
 end;
 
+
+function MySQL_Agent_Update(Agent_id : Integer; agentName : string; Agent_Tags : TArray<Integer>): Integer;
+var
+  query : TSQL;
+  i : integer;
+begin
+ // Result  := '';
+  query   := nil;
+  try
+    query := SQL.Create_SQL;
+    query.SQL.Text := 'SELECT * FROM agents WHERE `ID` = ' + Agent_id.ToString +' FOR UPDATE';
+    query.Active := true;
+    if query.RecordCount = 1 then
+    begin
+      query.SQL.Text := 'UPDATE `agents` SET';
+      query.SQL.Add('`NAME` = :agentName');
+      query.SQL.Add('WHERE `ID` = '+ Agent_id.ToString);
+      query.Params.CreateParam(ftString, 'agentName', ptInput);
+      query.ParamByName('agentName').AsString := agentName;
+      query.ExecSQL;
+
+      query.SQL.Text := 'DELETE FROM `agents.tags` WHERE `agentID` = ' + Agent_id.ToString;
+      query.ExecSQL;
+
+    end;
+
+    query.SQL.Text := 'INSERT INTO `agents.tags` (`agentID`, `tagID`) VALUES';
+
+    for I := 0 to Length(Agent_Tags)-1 do
+    begin
+      query.SQL.Add('(' + Agent_id.ToString +', '+ Agent_Tags[i].ToString + ')');
+      if I <> Length(Agent_Tags)-1 then query.SQL.Add(',');
+    end;
+    query.ExecSQL;
+
+
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
+
+
+function MySQL_Agent_Add(Agent_id : Integer; agentName : string; Agent_Tags : TArray<Integer>): Integer;
+var
+  query : TSQL;
+  i : integer;
+begin
+  query   := nil;
+  try
+    query := SQL.Create_SQL;
+    query.SQL.Text := 'INSERT INTO `agents` (`NAME`, `LASTONLINE`) VALUES';
+    query.SQL.Add('( :agentName, 0)');
+    query.Params.CreateParam(ftString, 'agentName', ptInput);
+    query.ParamByName('agentName').AsString := agentName;
+    query.ExecSQL;
+
+    query.SQL.text  := 'SELECT last_insert_id()  as `id`';
+    query.Open;
+    query.RecNo     := 1;
+
+    result          :=  query.FieldByName('id').AsInteger;
+
+
+    query.SQL.Text := 'INSERT INTO `agents.tags` (`agentID`, `tagID`) VALUES';
+
+    for I := 0 to Length(Agent_Tags)-1 do
+    begin
+      query.SQL.Add('(' + result.ToString +', '+ Agent_Tags[i].ToString + ')');
+      if I <> Length(Agent_Tags)-1 then query.SQL.Add(',');
+    end;
+    query.ExecSQL;
+
+
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
+
+function MySQL_Agent_GetAgentHTML(Agent_ID : integer; out NAME : string): string;
+var
+  query : TSQL;
+  i : integer;
+begin
+  Result  := '';
+  query   := nil;
+  try
+    query := SQL.Create_SQL;
+    query.SQL.Text := 'SELECT * FROM `agents` WHERE `ID` = '+Agent_ID.ToString;
+    query.Active := true;
+    if query.RecordCount = 1 then
+    begin
+      query.RecNo   := 1;
+    //  Result := query.FieldByName('TAGS').AsString;
+      NAME   := query.FieldByName('NAME').AsString;
+    //  tags   := tags +  '<span class="tag-item">'+Web.HTTPApp.HTMLEncode(query.FieldByName('TAGS').AsString)+'</span>' + #13;
+
+    end else
+    begin
+      Result := 'Error';
+    end;
+
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
+
 function MySQL_Agent_GetAgentsIDFromJobID(JobID : Integer; out AgentsId  : TArray<integer>): Boolean;
 var
   query : TSQL;
@@ -303,6 +415,31 @@ begin
 end;
 
 
+function MySQL_GetTagsListFromAgent_HTML(Agent_ID : integer) : string;
+var
+  query     : TSQL;
+  i         : integer;
+  selected  : string;
+begin
+  query := nil;
+  try
+    Result := #13;
+    query := SQL.Create_SQL;
+    query.SQL.Text := 'SELECT `idTags`, `tagname`, ifnull(`agentID`, -1) as `active` FROM `tags` LEFT  JOIN `agents.tags` ON (`tags`.`idTags` = `agents.tags`.`tagID` AND `agents.tags`.`agentID` = '+Agent_ID.ToString+')';
+    query.Active := true;
+    for I := 1 to query.RecordCount do
+    begin
+      query.RecNo    := i;
+      if query.FieldByName('active').AsInteger <> -1 then selected := 'selected' else selected := '';
+      Result := Result +  '<option value="' + query.FieldByName('idTags').AsString +'"'+ selected +'>'+Web.HTTPApp.HTMLEncode(query.FieldByName('tagname').AsString)+'</option>' + #13;
+    end;
+
+
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
+
 function MySQL_GetTagsListFromJob_HTML(JobID : integer) : string;
 var
   query     : TSQL;
@@ -313,7 +450,7 @@ begin
   try
     Result := #13;
     query := SQL.Create_SQL;
-    query.SQL.Text := 'SELECT `idTags`, `tagname`, ifnull(`jobID`, -1) as `active` FROM tags Left JOIN `jobs.tags` ON (`idTags` = tagID AND jobID = '+JobID.ToString +')';
+    query.SQL.Text := 'SELECT `idTags`, `tagname`, ifnull(`jobID`, -1) as `active` FROM `tags` Left JOIN `jobs.tags` ON (`idTags` = tagID AND jobID = '+JobID.ToString +')';
     query.Active := true;
     for I := 1 to query.RecordCount do
     begin
@@ -323,6 +460,37 @@ begin
     end;
 
 
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
+
+function MySQL_GetTagsList_FromTagIDList(IDtags : TArray<integer>) : TArray<TTagIDName>;
+var
+  query     : TSQL;
+  i         : integer;
+  tags      : string;
+begin
+  query := nil;
+  try
+    tags := '(';
+    for I := 0 to Length(IDtags)-1 do
+    begin
+      tags := tags + IDtags[i].ToString;
+      if i <> Length(IDtags)-1 then  tags := tags +', ';
+    end;
+    tags := tags + ')';
+
+    query := SQL.Create_SQL;
+    query.SQL.Text := 'SELECT * FROM tags WHERE `idTags` IN ' + tags;
+    query.Active := true;
+    SetLength(Result, query.RecordCount);
+    for I := 1 to query.RecordCount do
+    begin
+      query.RecNo    := i;
+      Result[i-1].tagID := query.FieldByName('idTags').AsInteger;
+      Result[i-1].Name := query.FieldByName('tagname').AsString;
+    end;
   finally
     if query <> nil then query.Free;
   end;
@@ -351,7 +519,6 @@ begin
     if query <> nil then query.Free;
   end;
 end;
-
 
 
 function MySQL_Agent_CheckLogin(key, ip, name : string; out ID: integer): Integer;
@@ -700,11 +867,40 @@ begin
   end;
 end;
 
+
+
+
+function MySQL_GetAgentTagsFromID(agentID : integer): TArray<TTagIDName>;
+var
+  query   : TSQL;
+  i       : integer;
+begin
+  query := nil;
+  try
+    query := SQL.Create_SQL;
+
+    query.Open('SELECT `agentID`, `tagID`, `tagname` FROM `agents.tags` INNER JOIN `tags` ON (`agents.tags`.`tagID` = `tags`.`idTags`) WHERE `agentID` = ' + agentID.tostring );
+    SetLength(Result, query.RecordCount);
+    for I := 1 to query.RecordCount do
+    begin
+      query.RecNo := i;
+      Result[i-1].tagID := query.FieldByName('tagID').AsInteger;
+      Result[i-1].Name  := query.FieldByName('tagname').AsString;
+
+    end;
+
+  finally
+    if query <> nil then query.Free;
+  end;
+end;
+
+
 function MySQL_Agents_GetAllAgents(): TAAgentConf;
 var
   query   : TSQL;
   i       : integer;
 begin
+  query := nil;
   try
     query := SQL.Create_SQL;
     query.Open('SELECT * FROM `agents`');
@@ -721,7 +917,7 @@ begin
     end;
 
   finally
-    query.Free;
+    if query <> nil then query.Free;
   end;
 end;
 
@@ -744,7 +940,7 @@ begin
         else Result  := Result + '<span class="status-icon status-icon-offline"></span>';
 
 
-      Result  := Result + ' <a href="/agent.html?number=' + Web.HTTPApp.HTMLEncode(query.FieldByName('ID').AsString)+'">'+Web.HTTPApp.HTMLEncode(query.FieldByName('NAME').AsString)+'</a>'
+      Result  := Result + ' <a href="/agent.html?agent_id=' + Web.HTTPApp.HTMLEncode(query.FieldByName('ID').AsString)+'">'+Web.HTTPApp.HTMLEncode(query.FieldByName('NAME').AsString)+'</a>'
                       //  + '<td>' + query.FieldByName('NAME').AsString + '</td>'
                         + '<p class="tag">' + Web.HTTPApp.HTMLEncode(query.FieldByName('TAGS').AsString) + '</p></td>'
                      //   + '<td>' + query.FieldByName('STATUS').AsString + '</td>'

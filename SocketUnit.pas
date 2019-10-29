@@ -2,11 +2,10 @@ unit SocketUnit;
 
 interface
 
-uses System.SyncObjs, System.Generics.Collections, System.Classes, System.SysUtils, system.JSON,
+uses System.SyncObjs, System.Generics.Collections, System.Classes, System.SysUtils, Web.HTTPApp, system.JSON,
         IdContext, varsUnit, MySQLUnit;
 
 type
-
   TAgent = class(TThread)
   private
   protected
@@ -14,7 +13,7 @@ type
     Quere           : tqueue<Tjob>;
     fContext        : TIdContext;
     fLastActivTime  : TDateTime;
-    fWStatus    : Boolean;
+    fWStatus        : Boolean;
     procedure UpdateAContext(AContext_ : TIdContext);
     function  JobToJS(job : Tjob): string;
     function  JobResult(msg : string; job : Tjob): integer;
@@ -23,10 +22,11 @@ type
     Agent       : TAgentConf;
     lastOnline  : TDateTime;
     Event       : TEvent;
+    fAgent_Tags  : TArray<TTagIDName>;
 
     Property AContext    : TIdContext read fContext write UpdateAContext;
 
-    constructor Create(agent_Id_ : integer; Agent_ : TAgentConf);
+    constructor Create(agent_Id_ : integer; Agent_ : TAgentConf; Agent_Tags  : TArray<TTagIDName>);
     procedure Execute; override;
     function  IsConnect : Boolean;
     function AddNewTask(Job : TJob): integer;
@@ -43,7 +43,9 @@ type
     function AddNewSocket(agentID : integer; AContext : TIdContext) : TAgent;
     function GetSocketConf(agentID : integer; out AgentConf : TAgent) : boolean;
     function AgentDisconnect(agentID : integer): Integer;
-  //  function AddJob(job : Tjob) : boolean;
+    function Agent_AddorUpdate(agentID : integer; AgentName : string; Agent_Tags : TArray<integer>) : Boolean;
+
+    function GetAllAgents_HTML(): string;
     //    function FoundConnect(agentID : Integer; out SocketConf : TSocketConf) : boolean;
 //    function getActiveSockets(): string;
     function AddNewTask(Job : TJob): integer;
@@ -98,7 +100,7 @@ begin
 end;
 
 
-constructor TAgent.Create(agent_Id_ : integer; Agent_ : TAgentConf);
+constructor TAgent.Create(agent_Id_ : integer; Agent_ : TAgentConf; Agent_Tags  : TArray<TTagIDName>);
 begin
   inherited Create(false);
 
@@ -110,6 +112,7 @@ begin
   agent_Id    := agent_Id_;
   Agent       := Agent_;
   fLastActivTime  := 0;
+  fAgent_Tags := Agent_Tags;
 
  // lastOnline  := Now;
 end;
@@ -253,6 +256,7 @@ var
   Jobs       : TAJob;
   j: Integer;
 //  Agent_ : TAgentConf;
+  Agent_Tags  : TArray<TTagIDName>;
 begin
   CS        := TCriticalSection.Create;
   fAllAgents := TDictionary<integer, TAgent>.Create();
@@ -260,7 +264,8 @@ begin
   MySQL_GetJobsDate_ALL();
   for I := 0 to Length(Agents)-1 do
   begin
-    SocketConf := TAgent.Create(Agents[i].agentID, Agents[i]);
+    Agent_Tags  := MySQL_GetAgentTagsFromID(Agents[i].agentID);
+    SocketConf  := TAgent.Create(Agents[i].agentID, Agents[i], Agent_Tags);
     fAllAgents.Add(Agents[i].agentID, SocketConf);
     Jobs := MySQL_Get_JobsDate_GetNewJobfromAgent(Agents[i].agentID);
     for j := 0 to Length(Jobs)-1 do
@@ -345,6 +350,78 @@ begin
   end;
 end;
 
+function TAllAgents.GetAllAgents_HTML(): string;
+var
+  Agent : TAgent;
+  i : Integer;
+  tags : string;
+begin
+  try
+    CS.Enter;
+    Result  := '';
+    for Agent in fAllAgents.Values do
+    begin
+      Result  := Result +  #13+ '<tr>'+#13 + '<td>';
+
+      if Agent.fContext <> nil
+        then Result  := Result + '<span class="status-icon status-icon-online"></span>'
+        else Result  := Result + '<span class="status-icon status-icon-offline"></span>';
+
+      tags := '';
+      for I := 0 to length(Agent.fAgent_Tags) -1 do
+      begin
+        tags := tags + '#'+Agent.fAgent_Tags[i].Name +' ';
+      end;
+      Result  := Result + ' <a href="/agent.html?agent_id=' + Web.HTTPApp.HTMLEncode(Agent.agent_Id.ToString)+'">'+Web.HTTPApp.HTMLEncode(Agent.Agent.Name)+'</a>'
+                        + '<p class="tag">' + Web.HTTPApp.HTMLEncode(tags) + '</p></td>'
+      ;
+
+
+
+      Result := Result + #13+'</tr>'+#10#13;
+    end;
+
+  finally
+    CS.Leave;
+  end;
+end;
+
+function TAllAgents.Agent_AddorUpdate(agentID : integer; AgentName : string; Agent_Tags : TArray<integer>) : Boolean;
+var
+  Agent : TAgent;
+  AgentConf : TAgentConf;
+begin
+  try
+    CS.Enter;
+    if agentID = -1 then
+    begin
+      agentID               := MySQL_Agent_Add(agentID, AgentName, Agent_Tags);
+      AgentConf.agentID     := agentID;
+      AgentConf.Name        := AgentName;
+      AgentConf.LastOnline  := 0;
+      Agent := TAgent.Create(agentID, AgentConf, MySQL_GetAgentTagsFromID(agentID));
+      fAllAgents.Add(agentID, Agent);
+    end else
+    begin
+      if fAllAgents.TryGetValue(agentID, Agent) = True then
+      begin
+        Agent.Agent.Name      := AgentName;
+        Agent.fAgent_Tags     := MySQL_GetTagsList_FromTagIDList(Agent_Tags);
+        MySQL_Agent_Update(agentID, AgentName, Agent_Tags);
+
+      end else
+      begin
+        // Error;
+      end;
+    end;
+
+
+
+
+  finally
+    CS.Leave;
+  end;
+end;
 
 function TAllAgents.AddNewTask(Job : TJob): integer;
 var
